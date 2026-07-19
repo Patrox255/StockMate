@@ -11,6 +11,7 @@ import com.example.stockmate.data.entity.ProductMultiplier
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.entity.StockLog
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class ProductRepository(
     private val db: AppDatabase,
@@ -18,9 +19,26 @@ class ProductRepository(
     private val productMultiplierDao: ProductMultiplierDao,
     private val stockLogDao: StockLogDao
 ) {
-    fun getAllProductsWithMultipliers(): Flow<List<ProductWithMultipliers>> = productDao.getAllProductsWithMultipliersFlow()
+    fun getAllProductsWithMultipliersFlow(): Flow<List<ProductWithMultipliers>> =
+        productDao.getAllProductsWithMultipliersFlow()
+            .map { products ->
+                products.map { it.withSortedMultipliers() }
+            }
 
-    fun getProductById(id: Int): Flow<ProductWithMultipliers> = productDao.getProductWithMultipliersFlow(id)
+    fun getProductWithMultipliersByIdFlow(id: Long): Flow<ProductWithMultipliers?> =
+        productDao.getProductWithMultipliersFlow(id)
+            .map { product ->
+                product?.withSortedMultipliers()
+            }
+
+    suspend fun getProductWithMultipliersById(id: Long): ProductWithMultipliers? =
+        productDao.getProductWithMultipliers(id)?.withSortedMultipliers()
+
+    private fun ProductWithMultipliers.withSortedMultipliers(): ProductWithMultipliers {
+        return this.copy(
+            multipliers = this.multipliers.sortedBy { it.sortOrder }
+        )
+    }
 
     suspend fun insertProduct(product: Product): Long {
         return productDao.insertProduct(product)
@@ -28,6 +46,13 @@ class ProductRepository(
 
     suspend fun insertProductMultiplier(multiplier: ProductMultiplier): Long {
         return productMultiplierDao.insertMultiplier(multiplier)
+    }
+
+    suspend fun deleteProduct(productId: Long) {
+        db.withWriteTransaction {
+            productMultiplierDao.deleteMultipliersByProductIds(listOf(productId))
+            productDao.deleteProductsByIds(listOf(productId))
+        }
     }
 
     suspend fun changeStock(product: Product, amount: Float, reason: ChangeReason) {
@@ -55,8 +80,30 @@ class ProductRepository(
         }
     }
 
+    suspend fun updateProductWithMultipliers(
+        product: Product,
+        multipliers: List<ProductMultiplier>
+    ) {
+        db.withWriteTransaction {
+            // We start by updating the product simple data
+            productDao.updateProduct(product)
+
+            // Then we delete all existing multipliers for this product due to the fact that
+            // when we load all the multipliers to the form data we set their respective id to
+            // random values therefore we cannot update them directly, we have to delete the old ones and insert the new ones
+            productMultiplierDao.deleteMultipliersByProductIds(listOf(product.id))
+
+            // Finally, we insert the new multipliers
+            multipliers.forEach { multiplier ->
+                val multiplierWithProductId = multiplier.copy(productId = product.id)
+                productMultiplierDao.insertMultiplier(multiplierWithProductId)
+            }
+        }
+    }
+
+
     suspend fun seedSampleData() {
-        val reservedIds = (1..10).toList()
+        val reservedIds = (1..10).map { it.toLong() }.toList()
 
         productMultiplierDao.deleteMultipliersByProductIds(reservedIds)
         productDao.deleteProductsByIds(reservedIds)
@@ -77,31 +124,31 @@ class ProductRepository(
         sampleProducts.forEach { productDao.insertProduct(it) }
 
         val sampleMultipliers = listOf<ProductMultiplier>(
-            ProductMultiplier(productId = 1, name = "Glass", value = 0.25f),
-            ProductMultiplier(productId = 1, name = "Carton", value = 1.0f),
+            ProductMultiplier(productId = 1, name = "Glass", value = 0.25f, sortOrder = 1),
+            ProductMultiplier(productId = 1, name = "Carton", value = 1.0f, sortOrder = 2),
 
-            ProductMultiplier(productId = 2, name = "Portion", value = 0.1f),
-            ProductMultiplier(productId = 2, name = "Box", value = 1.0f),
+            ProductMultiplier(productId = 2, name = "Portion", value = 0.1f, sortOrder = 1),
+            ProductMultiplier(productId = 2, name = "Box", value = 1.0f, sortOrder = 2),
 
-            ProductMultiplier(productId = 3, name = "Single", value = 1.0f),
-            ProductMultiplier(productId = 3, name = "Omelette", value = 3.0f),
+            ProductMultiplier(productId = 3, name = "Single", value = 1.0f, sortOrder = 1),
+            ProductMultiplier(productId = 3, name = "Omelette", value = 3.0f, sortOrder = 2),
 
-            ProductMultiplier(productId = 4, name = "Slice", value = 0.05f),
-            ProductMultiplier(productId = 4, name = "Half", value = 0.5f),
+            ProductMultiplier(productId = 4, name = "Slice", value = 0.05f, sortOrder = 1),
+            ProductMultiplier(productId = 4, name = "Half", value = 0.5f, sortOrder = 2),
 
-            ProductMultiplier(productId = 5, name = "Sandwich", value = 10.0f),
-            ProductMultiplier(productId = 5, name = "Baking", value = 100.0f),
+            ProductMultiplier(productId = 5, name = "Sandwich", value = 10.0f, sortOrder = 1),
+            ProductMultiplier(productId = 5, name = "Baking", value = 100.0f, sortOrder = 2),
 
-            ProductMultiplier(productId = 6, name = "Dinner", value = 0.2f),
+            ProductMultiplier(productId = 6, name = "Dinner", value = 0.2f, sortOrder = 1),
 
-            ProductMultiplier(productId = 7, name = "Bowl", value = 100.0f),
-            ProductMultiplier(productId = 7, name = "Pack", value = 500.0f),
+            ProductMultiplier(productId = 7, name = "Bowl", value = 100.0f, sortOrder = 1),
+            ProductMultiplier(productId = 7, name = "Pack", value = 500.0f, sortOrder = 2),
 
-            ProductMultiplier(productId = 8, name = "Mug", value = 15.0f),
+            ProductMultiplier(productId = 8, name = "Mug", value = 15.0f, sortOrder = 1),
 
-            ProductMultiplier(productId = 9, name = "Dinner", value = 0.5f),
+            ProductMultiplier(productId = 9, name = "Dinner", value = 0.5f, sortOrder = 1),
 
-            ProductMultiplier(productId = 10, name = "Single", value = 0.2f)
+            ProductMultiplier(productId = 10, name = "Single", value = 0.2f, sortOrder = 1)
         )
 
         sampleMultipliers.forEach { productMultiplierDao.insertMultiplier(it) }

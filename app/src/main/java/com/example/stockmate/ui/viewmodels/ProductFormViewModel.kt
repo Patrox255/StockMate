@@ -1,9 +1,11 @@
 package com.example.stockmate.ui.viewmodels
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.dtos.AddProductFormState
 import com.example.stockmate.data.dtos.MultiplierField
+import com.example.stockmate.data.dtos.MultiplierFormState
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.validationUtil.FormValidationUtil
@@ -11,16 +13,24 @@ import com.example.stockmate.data.validationUtil.FormValidator
 import com.example.stockmate.data.validationUtil.ValidatorGeneratorData
 import com.example.stockmate.ui.viewmodels.productMultiplier.MultipliersFormManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class ProductFormUiEvent {
+    data class ProductNotFound(val message: String) : ProductFormUiEvent()
+    data object NavigateBack : ProductFormUiEvent()
+}
+
 @HiltViewModel
-class AddProductViewModel @Inject constructor (
-    private val productRepository: ProductRepository
+class ProductFormViewModel @Inject constructor (
+    private val productRepository: ProductRepository,
+    savedStateHandle: SavedStateHandle
 ): ViewModel() {
     enum class AddProductFormField {
         NAME,
@@ -52,13 +62,32 @@ class AddProductViewModel @Inject constructor (
     )
 
     private val _formState = MutableStateFlow(AddProductFormState())
-    private val initialState = AddProductFormState()
+    private var initialState = AddProductFormState()
+    // This is used to store the initial multipliers data when editing a product, so we can check
+    // for unsaved changes in the multipliers section. We only store the name, value and sortOrder of each multiplier,
+    // since the localId is generated on the fly and will always be different.
+    private var initialMultipliersData: List<Triple<String, String, Int>> = emptyList()
+    private val _isLoadingExistingData = MutableStateFlow(false)
+    private val _uiEvent = MutableSharedFlow<ProductFormUiEvent>()
 
+    val productId: Long? = savedStateHandle.get<Long>("productId")
+    val isEditMode: Boolean = productId != null
+    val isLoadingExistingData: StateFlow<Boolean> = _isLoadingExistingData.asStateFlow()
     val formState: StateFlow<AddProductFormState> = _formState.asStateFlow()
     val errors = formValidator.errors
     val error = formValidator.error
+    val uiEvent = _uiEvent.asSharedFlow()
     val hasUnsavedChanges: Boolean
-        get() = _formState.value != initialState
+        get() = if (isEditMode && _isLoadingExistingData.value) {
+            false
+        } else {
+            val productFormChanged = _formState.value != initialState
+            val currentMultipliersComparisionData = multiplierFormStateListToComparisionData(
+                multipliersManager.multipliers.value)
+            val multipliersChanged = currentMultipliersComparisionData != initialMultipliersData
+
+            productFormChanged || multipliersChanged
+        }
     val multipliersManager = MultipliersFormManager(
         validationRules = mapOf(
             MultiplierField.NAME to listOf(
@@ -90,7 +119,45 @@ class AddProductViewModel @Inject constructor (
         _formState.update { it.copy(packageSize = newSize) }
     }
 
-    fun saveProduct(onSuccess: () -> Unit) {
+    init {
+        if (isEditMode) {
+            loadProductData(productId!!)
+        }
+    }
+
+    private fun loadProductData(id: Long) {
+        viewModelScope.launch {
+            _isLoadingExistingData.value = false
+            val productWithMultipliers = productRepository.getProductWithMultipliersById(id)
+
+            if (productWithMultipliers != null) {
+                _formState.value = AddProductFormState(
+                    name = productWithMultipliers.product.name,
+                    unit = productWithMultipliers.product.unit,
+                    targetStock = productWithMultipliers.product.targetStock.toString(),
+                    packageSize = productWithMultipliers.product.packageSize.toString(),
+                    currentStock = productWithMultipliers.product.currentStock.toString()
+                )
+                multipliersManager.loadExistingMultipliers(productWithMultipliers.multipliers)
+
+                initialMultipliersData = multiplierFormStateListToComparisionData(
+                    multipliersManager.multipliers.value)
+            } else {
+                _uiEvent.emit(ProductFormUiEvent.ProductNotFound("Error: Product with ID $id not found. Therefore the form cannot be loaded."))
+            }
+
+            _isLoadingExistingData.value = false
+            initialState = _formState.value
+        }
+    }
+
+    private fun multiplierFormStateListToComparisionData(multipliers: List<MultiplierFormState>): List<Triple<String, String, Int>> {
+        return multipliers.mapIndexed { index, multiplier ->
+            Triple(multiplier.name, multiplier.value, index)
+        }
+    }
+
+    fun saveProduct() {
         val current = _formState.value
 
         val isFormValid = formValidator.validateBeforeSubmit(
@@ -111,8 +178,9 @@ class AddProductViewModel @Inject constructor (
 
 
         viewModelScope.launch {
+
             val newProduct = Product(
-                id = 0,
+                id = productId ?: 0L,
                 name = current.name,
                 unit = current.unit,
                 currentStock = 0f,
@@ -120,11 +188,18 @@ class AddProductViewModel @Inject constructor (
                 packageSize = current.packageSize.toFloat()
             )
 
-            productRepository.insertProductWithMultipliers(
-                product = newProduct,
-                multipliers = multipliersManager.getProductMultipliers()
-            )
-            onSuccess()
+            if (isEditMode) {
+                productRepository.updateProductWithMultipliers(
+                    product = newProduct,
+                    multipliers = multipliersManager.getProductMultipliers()
+                )
+            } else {
+                productRepository.insertProductWithMultipliers(
+                    product = newProduct,
+                    multipliers = multipliersManager.getProductMultipliers()
+                )
+            }
+            _uiEvent.emit(ProductFormUiEvent.NavigateBack)
         }
     }
 }

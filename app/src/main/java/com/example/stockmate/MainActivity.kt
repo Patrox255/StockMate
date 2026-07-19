@@ -16,9 +16,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
-import com.example.stockmate.ui.screens.product.AddProductScreen
+import com.example.stockmate.ui.screens.product.ProductFormScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
-import com.example.stockmate.ui.viewmodels.AddProductViewModel
+import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import com.example.stockmate.ui.viewmodels.InventoryViewModel
 import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,17 +61,18 @@ class MainActivity : ComponentActivity() {
 
                         composable(
                             route = "details/{productId}",
-                            arguments = listOf(navArgument("productId") {type = NavType.IntType})
-                        ) {
+                            arguments = listOf(navArgument("productId") {type = NavType.LongType})
+                        ) { backStackEntry ->
                             val viewModel: ProductDetailsViewModel = hiltViewModel()
+                            val productId = backStackEntry.arguments!!.getLong("productId")
 
                             ProductDetailsScreen(
                                 viewModel = viewModel,
                                 onNavigateBack = {
                                     navController.popBackStack()
                                 },
-                                onDeleteProduct = {
-                                    // TODO
+                                onNavigateToEdit = {
+                                    navController.navigate("edit-product/${productId}")
                                 }
                             )
                         }
@@ -79,9 +80,23 @@ class MainActivity : ComponentActivity() {
                         composable(
                             route = "add-product"
                         ) {
-                           val viewModel : AddProductViewModel = hiltViewModel()
+                           val viewModel : ProductFormViewModel = hiltViewModel()
 
-                            AddProductScreen(
+                            ProductFormScreen(
+                                viewModel = viewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        composable (
+                            route = "edit-product/{productId}",
+                            arguments = listOf(navArgument("productId") {type = NavType.LongType})
+                        ) {
+                            val viewModel : ProductFormViewModel = hiltViewModel()
+
+                            ProductFormScreen(
                                 viewModel = viewModel,
                                 onNavigateBack = {
                                     navController.popBackStack()

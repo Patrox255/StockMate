@@ -15,5 +15,5 @@ interface ProductMultiplierDao {
     suspend fun deleteAllMultipliers()
 
     @Query("DELETE FROM product_multipliers WHERE productId IN (:productIds)")
-    suspend fun deleteMultipliersByProductIds(productIds: List<Int>)
+    suspend fun deleteMultipliersByProductIds(productIds: List<Long>)
 }

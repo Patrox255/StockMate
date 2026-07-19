@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.ui.components.LoadingIndicator
+import com.example.stockmate.ui.components.form.DeleteConfirmationDialog
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
@@ -33,19 +36,33 @@ import kotlin.math.roundToInt
 fun ProductDetailsScreen(
     viewModel: ProductDetailsViewModel,
     onNavigateBack: () -> Unit,
-    onDeleteProduct: () -> Unit
+    onNavigateToEdit: () -> Unit
 ) {
     val productDetailsState by viewModel.productDetails.collectAsState()
     val details = productDetailsState
 
     if (details == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        LoadingIndicator()
         return
     }
 
     val focusManager = LocalFocusManager.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        DeleteConfirmationDialog(
+            title = "Delete ${details.product.name}",
+            message = "Are you sure you want to delete this product? This action cannot be undone.",
+            onConfirm = {
+                viewModel.deleteProduct()
+                showDeleteDialog = false
+                onNavigateBack()
+            },
+            onDismiss = {
+                showDeleteDialog = false
+            }
+        )
+    }
 
     Scaffold(
         // In order to make it so that when a user clicks outside the Text Field then it counts as
@@ -64,8 +81,11 @@ fun ProductDetailsScreen(
                     NavigateBack(onNavigateBack = onNavigateBack)
                 },
                 actions = {
-                    IconButton(onClick = onDeleteProduct) {
+                    IconButton(onClick = {showDeleteDialog = true}) {
                         Icon(Icons.Default.Delete, contentDescription = null)
+                    }
+                    IconButton(onClick = onNavigateToEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = null)
                     }
                 }
             )
