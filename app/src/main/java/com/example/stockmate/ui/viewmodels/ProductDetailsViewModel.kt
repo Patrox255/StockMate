@@ -17,9 +17,9 @@ class ProductDetailsViewModel @Inject constructor(
     private val repository: ProductRepository,
     private val savedStateHandle: SavedStateHandle
 ): ViewModel() {
-    private val productId = checkNotNull(savedStateHandle.get<Int>("productId"))
+    private val productId = checkNotNull(savedStateHandle.get<Long>("productId"))
 
-    val productDetails = repository.getProductById(productId)
+    val productDetails = repository.getProductWithMultipliersByIdFlow(productId)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -29,6 +29,12 @@ class ProductDetailsViewModel @Inject constructor(
     fun changeStock(product: Product, amount: Float, reason: ChangeReason) {
         viewModelScope.launch {
             repository.changeStock(product, amount, reason)
+        }
+    }
+
+    fun deleteProduct() {
+        viewModelScope.launch {
+            repository.deleteProduct(productId)
         }
     }
 }

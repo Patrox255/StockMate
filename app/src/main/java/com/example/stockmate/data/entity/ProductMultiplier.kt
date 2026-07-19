@@ -21,5 +21,6 @@ data class ProductMultiplier (
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val productId: Long,
     val name: String,
-    val value: Float
+    val value: Float,
+    val sortOrder: Int
 )

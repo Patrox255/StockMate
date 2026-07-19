@@ -17,13 +17,19 @@ interface ProductDao {
     @Query("SELECT * FROM products")
     fun getAllProductsFlow(): Flow<List<Product>>
 
+    // --- Whenever we want to display product's multipliers then we have to sort them by their sort order property
     @Transaction
     @Query("SELECT * FROM products WHERE id = :productId")
-    fun getProductWithMultipliersFlow(productId: Int): Flow<ProductWithMultipliers>
+    fun getProductWithMultipliersFlow(productId: Long): Flow<ProductWithMultipliers?>
+
+    @Transaction
+    @Query("SELECT * FROM products WHERE id = :productId")
+    suspend fun getProductWithMultipliers(productId: Long): ProductWithMultipliers?
 
     @Transaction
     @Query("SELECT * FROM products")
     fun getAllProductsWithMultipliersFlow(): Flow<List<ProductWithMultipliers>>
+    // ---
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProduct(product: Product): Long
@@ -35,7 +41,7 @@ interface ProductDao {
     suspend fun deleteProduct(product: Product)
 
     @Query("DELETE FROM products WHERE id in (:ids)")
-    suspend fun deleteProductsByIds(ids: List<Int>)
+    suspend fun deleteProductsByIds(ids: List<Long>)
 
     @Query("DELETE FROM products")
     suspend fun deleteAllProducts()

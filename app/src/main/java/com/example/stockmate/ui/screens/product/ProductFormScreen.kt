@@ -1,5 +1,6 @@
 package com.example.stockmate.ui.screens.product
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,20 +24,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.ui.components.FormTextField
+import com.example.stockmate.ui.components.form.FormTextField
 import com.example.stockmate.ui.components.GenericErrorMessage
+import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.navigation.NavigateBackDialog
 import com.example.stockmate.ui.components.product.ProductMultipliersManageFormSection
-import com.example.stockmate.ui.viewmodels.AddProductViewModel
+import com.example.stockmate.ui.viewmodels.ProductFormUiEvent
+import com.example.stockmate.ui.viewmodels.ProductFormViewModel
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddProductScreen(
-    viewModel: AddProductViewModel,
+fun ProductFormScreen(
+    viewModel: ProductFormViewModel,
     onNavigateBack: () -> Unit
 )
 {
@@ -44,6 +50,30 @@ fun AddProductScreen(
     val errors by viewModel.errors.collectAsState()
     val error by viewModel.error.collectAsState()
     val multipliers by viewModel.multipliersManager.multipliers.collectAsState()
+    val isLoadingExistingData by viewModel.isLoadingExistingData.collectAsState()
+    val screenTitle = if (viewModel.isEditMode) "Edit Product" else "Add Product"
+    val buttonText = if (viewModel.isEditMode) "Update Product" else "Save Product"
+
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collectLatest { event ->
+            when (event) {
+                is ProductFormUiEvent.ProductNotFound -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    onNavigateBack()
+                }
+                is ProductFormUiEvent.NavigateBack -> {
+                    onNavigateBack()
+                }
+            }
+        }
+    }
+
+    if (isLoadingExistingData) {
+        LoadingIndicator()
+        return
+    }
 
     var showBackDialog by remember {
         mutableStateOf(false)
@@ -81,7 +111,7 @@ fun AddProductScreen(
             },
         topBar = {
             TopAppBar(
-                title = { Text("Add a new product") },
+                title = { Text(screenTitle) },
                 navigationIcon = {
                     NavigateBack(onNavigateBack = {
                         handleNavigateBack()
@@ -102,14 +132,14 @@ fun AddProductScreen(
                 value = formState.name,
                 onValueChange = {viewModel.onNameChanged(it)},
                 label = "Product Name",
-                errorMessages = errors[AddProductViewModel.AddProductFormField.NAME] ?: emptyList()
+                errorMessages = errors[ProductFormViewModel.AddProductFormField.NAME] ?: emptyList()
             )
 
             FormTextField(
                 value = formState.unit,
                 onValueChange = {viewModel.onUnitChanged(it)},
                 label = "Unit (e.g., kg, pcs, l)",
-                errorMessages = errors[AddProductViewModel.AddProductFormField.UNIT] ?: emptyList()
+                errorMessages = errors[ProductFormViewModel.AddProductFormField.UNIT] ?: emptyList()
             )
 
             FormTextField(
@@ -117,7 +147,7 @@ fun AddProductScreen(
                 onValueChange = {viewModel.onTargetStockChanged(it)},
                 label = "Target Stock",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                errorMessages = errors[AddProductViewModel.AddProductFormField.TARGET_STOCK] ?: emptyList()
+                errorMessages = errors[ProductFormViewModel.AddProductFormField.TARGET_STOCK] ?: emptyList()
             )
 
             FormTextField(
@@ -125,7 +155,7 @@ fun AddProductScreen(
                 onValueChange = { viewModel.onPackageSizeChanged(it) },
                 label = "Package Size",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                errorMessages = errors[AddProductViewModel.AddProductFormField.PACKAGE_SIZE] ?: emptyList()
+                errorMessages = errors[ProductFormViewModel.AddProductFormField.PACKAGE_SIZE] ?: emptyList()
             )
 
             ProductMultipliersManageFormSection(
@@ -133,16 +163,19 @@ fun AddProductScreen(
                 onAddMultiplier = viewModel.multipliersManager::addEmptyMultiplier,
                 onUpdateMultiplier = viewModel.multipliersManager::updateMultiplier ,
                 onRemoveMultiplier = viewModel.multipliersManager::removeMultiplier,
-                modifier = Modifier.padding(top = 16.dp)
+                modifier = Modifier.padding(top = 16.dp),
+                onMultiplierMove = { from, to ->
+                    viewModel.multipliersManager.moveMultiplier(from, to)
+                }
             )
 
             Button(
                 onClick = {
-                    viewModel.saveProduct(onSuccess = onNavigateBack)
+                    viewModel.saveProduct()
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Product")
+                Text(buttonText)
             }
 
             if (error != null) {

@@ -4,5 +4,6 @@ data class AddProductFormState(
     val name: String = "",
     val unit: String = "units",
     val targetStock: String = "",
-    val packageSize: String = "1"
+    val packageSize: String = "1",
+    val currentStock: String = "0",
 )

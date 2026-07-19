@@ -86,11 +86,12 @@ class MultipliersFormManager(
     }
 
     fun getProductMultipliers(): List<ProductMultiplier> {
-        return _multipliers.value.filter(this::isMultiplierValid).map { multiplier ->
+        return _multipliers.value.filter(this::isMultiplierValid).mapIndexed { index, multiplier ->
             ProductMultiplier(
                 productId = 0,
                 name = multiplier.name,
-                value = multiplier.value.toFloat()
+                value = multiplier.value.toFloat(),
+                sortOrder = index
             )
         }
     }
@@ -102,6 +103,15 @@ class MultipliersFormManager(
                 name = entity.name,
                 value = entity.value.toString()
             )
+        }
+    }
+
+    fun moveMultiplier(fromIndex: Int, toIndex: Int) {
+        _multipliers.update { currentMultipliers ->
+            val mutableList = currentMultipliers.toMutableList()
+            val item = mutableList.removeAt(fromIndex)
+            mutableList.add(toIndex, item)
+            mutableList
         }
     }
 }

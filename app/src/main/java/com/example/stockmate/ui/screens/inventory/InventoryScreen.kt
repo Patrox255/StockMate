@@ -72,7 +72,10 @@ fun InventoryScreen(
 }
 
 @Composable
-fun ProductItem(productWithMultipliers: ProductWithMultipliers, viewModel: InventoryViewModel, onNavigateToDetails: (productId: Long) -> Unit) {
+fun ProductItem(
+    productWithMultipliers: ProductWithMultipliers,
+    viewModel: InventoryViewModel,
+    onNavigateToDetails: (productId: Long) -> Unit) {
     var (product, multipliers) = productWithMultipliers
     var showDialog by remember { mutableStateOf(false) }
     var pendingDifference by remember {mutableStateOf(0f)}
@@ -81,6 +84,10 @@ fun ProductItem(productWithMultipliers: ProductWithMultipliers, viewModel: Inven
 
     LaunchedEffect(product.currentStock) {
         inputText = product.currentStock.toString()
+    }
+
+    LaunchedEffect(multipliers) {
+        selectedMultiplier = multipliers.find {it.id == selectedMultiplier?.id} ?: multipliers.firstOrNull()
     }
 
     Card(
