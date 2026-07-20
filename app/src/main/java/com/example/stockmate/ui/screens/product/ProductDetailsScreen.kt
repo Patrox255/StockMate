@@ -1,9 +1,13 @@
 package com.example.stockmate.ui.screens.product
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
@@ -13,8 +17,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,6 +30,7 @@ import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.form.DeleteConfirmationDialog
+import com.example.stockmate.ui.components.img.ImgDisplay
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
@@ -123,7 +130,29 @@ fun ProductDetailsContent(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(bottom = 16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ImgDisplay(
+                fileName = product.imageUrl,
+                currentImageDescription = "Product Image",
+                noImageNotification = "No image available. Head to edit to add one.",
+                contentScale = ContentScale.Fit,
+                imgModifier = Modifier.fillMaxSize(),
+                iconModifier = Modifier.size(64.dp),
+                noImageNotificationVisible = true
+            )
+        }
+
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -239,7 +268,7 @@ fun ProductDetailsContent(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),

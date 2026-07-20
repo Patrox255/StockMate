@@ -8,6 +8,7 @@ import com.example.stockmate.data.dao.ProductDao
 import com.example.stockmate.data.dao.ProductMultiplierDao
 import com.example.stockmate.data.dao.StockLogDao
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.ImageStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -54,4 +55,10 @@ class AppModule {
         productMultiplierDao,
         stockLogDao
     )
+
+    @Provides
+    @Singleton
+    fun provideImageStorage(
+        @ApplicationContext context: Context
+    ): ImageStorage = ImageStorage(context)
 }

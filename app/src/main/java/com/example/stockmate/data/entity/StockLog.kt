@@ -1,9 +1,22 @@
 package com.example.stockmate.data.entity
 
 import androidx.room3.Entity
+import androidx.room3.ForeignKey
+import androidx.room3.Index
 import androidx.room3.PrimaryKey
 
-@Entity(tableName = "stock_logs")
+@Entity(
+    tableName = "stock_logs",
+    foreignKeys = [
+        ForeignKey(
+            entity = Product::class,
+            parentColumns = ["id"],
+            childColumns = ["productId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("productId")]
+)
 data class StockLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val productId: Long,

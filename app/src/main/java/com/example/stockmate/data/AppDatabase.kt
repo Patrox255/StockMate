@@ -15,7 +15,7 @@ import com.example.stockmate.data.entity.StockLog
     entities = [
         Product::class, StockLog::class, ProductMultiplier::class
    ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @ColumnTypeConverters(Converters::class)

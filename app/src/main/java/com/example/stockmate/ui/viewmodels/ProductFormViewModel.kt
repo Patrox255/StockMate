@@ -8,6 +8,7 @@ import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.ImageStorage
 import com.example.stockmate.data.validationUtil.FormValidationUtil
 import com.example.stockmate.data.validationUtil.FormValidator
 import com.example.stockmate.data.validationUtil.ValidatorGeneratorData
@@ -30,7 +31,8 @@ sealed class ProductFormUiEvent {
 @HiltViewModel
 class ProductFormViewModel @Inject constructor (
     private val productRepository: ProductRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    imageStorage: ImageStorage
 ): ViewModel() {
     enum class AddProductFormField {
         NAME,
@@ -136,7 +138,8 @@ class ProductFormViewModel @Inject constructor (
                     unit = productWithMultipliers.product.unit,
                     targetStock = productWithMultipliers.product.targetStock.toString(),
                     packageSize = productWithMultipliers.product.packageSize.toString(),
-                    currentStock = productWithMultipliers.product.currentStock.toString()
+                    currentStock = productWithMultipliers.product.currentStock.toString(),
+                    imagePath = productWithMultipliers.product.imageUrl
                 )
                 multipliersManager.loadExistingMultipliers(productWithMultipliers.multipliers)
 
@@ -154,6 +157,12 @@ class ProductFormViewModel @Inject constructor (
     private fun multiplierFormStateListToComparisionData(multipliers: List<MultiplierFormState>): List<Triple<String, String, Int>> {
         return multipliers.mapIndexed { index, multiplier ->
             Triple(multiplier.name, multiplier.value, index)
+        }
+    }
+
+    fun onImageChanged(newPath: String) {
+        _formState.update {
+            it.copy(imagePath = newPath)
         }
     }
 
@@ -185,7 +194,8 @@ class ProductFormViewModel @Inject constructor (
                 unit = current.unit,
                 currentStock = 0f,
                 targetStock = current.targetStock.toFloat(),
-                packageSize = current.packageSize.toFloat()
+                packageSize = current.packageSize.toFloat(),
+                imageUrl = current.imagePath
             )
 
             if (isEditMode) {
