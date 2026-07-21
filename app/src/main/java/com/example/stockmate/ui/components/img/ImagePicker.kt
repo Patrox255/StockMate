@@ -21,7 +21,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.ui.viewmodels.img.ImagePickerViewModel
 
 @Composable
 fun ImagePicker(
@@ -30,10 +32,9 @@ fun ImagePicker(
     availableSources: List<ImagePickerSource> = listOf(LocalGallerySource),
     modifier: Modifier = Modifier,
     currentImageDescription: String,
-    noImageNotification: String
+    noImageNotification: String,
+    viewmodel: ImagePickerViewModel = hiltViewModel()
 ) {
-    val context = LocalContext.current
-    val imageStorage = ImageStorage(context)
     val sourceActions = availableSources.associateWith { source ->
         key(source.title) {
             source.setupAction(onImagePicked)
@@ -58,7 +59,7 @@ fun ImagePicker(
     ) {
         ImgDisplay(
             absoluteImgPath = if (currentImagePath != null)
-                imageStorage.getFile(currentImagePath).absolutePath else null,
+                viewmodel.getImgAbsolutePathBasedOnDeviceStorage(currentImagePath) else null,
             currentImageDescription = currentImageDescription,
             noImageNotification = noImageNotification,
             contentScale = ContentScale.Crop

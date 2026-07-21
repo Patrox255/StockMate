@@ -132,27 +132,6 @@ fun ProductDetailsContent(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .padding(bottom = 16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            ImgDisplay(
-                fileName = product.imageUrl,
-                currentImageDescription = "Product Image",
-                noImageNotification = "No image available. Head to edit to add one.",
-                contentScale = ContentScale.Fit,
-                imgModifier = Modifier.fillMaxSize(),
-                iconModifier = Modifier.size(64.dp),
-                noImageNotificationVisible = true
-            )
-        }
-
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -171,6 +150,27 @@ fun ProductDetailsContent(
                 text = "Goal: ${product.targetStock} ${product.unit}",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(bottom = 16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ImgDisplay(
+                fileName = product.imageUrl,
+                currentImageDescription = "Product Image",
+                noImageNotification = "No image available. Head to edit to add one.",
+                contentScale = ContentScale.Fit,
+                imgModifier = Modifier.fillMaxSize(),
+                iconModifier = Modifier.size(64.dp),
+                noImageNotificationVisible = true
             )
         }
 

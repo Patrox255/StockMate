@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.ImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -15,7 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductDetailsViewModel @Inject constructor(
     private val repository: ProductRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
 ): ViewModel() {
     private val productId = checkNotNull(savedStateHandle.get<Long>("productId"))
 

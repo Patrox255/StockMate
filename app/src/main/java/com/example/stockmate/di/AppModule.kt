@@ -48,12 +48,14 @@ class AppModule {
         db: AppDatabase,
         productDao: ProductDao,
         productMultiplierDao: ProductMultiplierDao,
-        stockLogDao: StockLogDao
+        stockLogDao: StockLogDao,
+        imageStorage: ImageStorage
     ) = ProductRepository(
         db,
         productDao,
         productMultiplierDao,
-        stockLogDao
+        stockLogDao,
+        imageStorage
     )
 
     @Provides

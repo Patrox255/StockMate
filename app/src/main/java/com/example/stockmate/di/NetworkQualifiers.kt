@@ -7,9 +7,13 @@ import javax.inject.Qualifier
 annotation class PixabayApiIdentifier
 
 @Qualifier
-@Retention
+@Retention(AnnotationRetention.BINARY)
 annotation class PixabayClient
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class OpenFoodFactsApiIdentifier
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class OpenFoodFactsClient

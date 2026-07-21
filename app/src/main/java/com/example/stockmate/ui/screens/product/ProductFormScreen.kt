@@ -35,6 +35,7 @@ import com.example.stockmate.ui.components.GenericErrorMessage
 import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.img.ImagePicker
 import com.example.stockmate.ui.components.img.LocalGallerySource
+import com.example.stockmate.ui.components.img.OpenFoodFactsSource
 import com.example.stockmate.ui.components.img.PixabaySource
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.navigation.NavigateBackDialog
@@ -141,7 +142,8 @@ fun ProductFormScreen(
                 modifier = Modifier.padding(bottom = 16.dp),
                 availableSources = listOf(
                     LocalGallerySource,
-                    PixabaySource
+                    PixabaySource,
+                    OpenFoodFactsSource
                 )
             )
 

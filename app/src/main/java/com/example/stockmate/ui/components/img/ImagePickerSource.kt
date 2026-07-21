@@ -9,10 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.ui.viewmodels.img.LocalGalleryViewModel
+import kotlinx.coroutines.launch
 
 interface ImagePickerSource {
     val title: String
@@ -28,17 +32,15 @@ object LocalGallerySource : ImagePickerSource {
 
     @Composable
     override fun setupAction(onImagePicked: (String) -> Unit): () -> Unit {
-        val context = LocalContext.current
-        val imageStorage = remember { ImageStorage(context) }
+        val viewmodel: LocalGalleryViewModel = hiltViewModel()
 
         val photoPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia()
         ) { uri ->
-            if (uri != null) {
-                val localPath = imageStorage.saveImageToInternalStorage(uri)
-                if (localPath != null) {
-                    onImagePicked(localPath)
-                }
+            uri ?: return@rememberLauncherForActivityResult
+            viewmodel.saveImage(uri) { localFileName ->
+                if (localFileName != null)
+                    onImagePicked(localFileName)
             }
         }
 
@@ -61,6 +63,32 @@ object PixabaySource : ImagePickerSource {
         if (showDialog) {
             PixabaySearchDialog(
                 onImageSelected = { imageUrl ->
+                    onImagePicked(imageUrl)
+                    showDialog = false
+                },
+                onDismissRequest = {
+                    showDialog = false
+                }
+            )
+        }
+
+        return {
+            showDialog = true
+        }
+    }
+}
+
+object OpenFoodFactsSource: ImagePickerSource {
+    override val title: String = "OpenFoodFacts"
+    override val icon: ImageVector = Icons.Default.PhotoLibrary
+
+    @Composable
+    override fun setupAction(onImagePicked: (String) -> Unit): () -> Unit {
+        var showDialog by remember {mutableStateOf(false)}
+
+        if (showDialog) {
+            OpenFoodFactsSearchDialog(
+                onImageSelected = {imageUrl ->
                     onImagePicked(imageUrl)
                     showDialog = false
                 },

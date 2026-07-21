@@ -8,6 +8,7 @@ import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.FormImageTracker
 import com.example.stockmate.data.util.ImageStorage
 import com.example.stockmate.data.validationUtil.FormValidationUtil
 import com.example.stockmate.data.validationUtil.FormValidator
@@ -32,7 +33,8 @@ sealed class ProductFormUiEvent {
 class ProductFormViewModel @Inject constructor (
     private val productRepository: ProductRepository,
     savedStateHandle: SavedStateHandle,
-    imageStorage: ImageStorage
+    private val imageStorage: ImageStorage,
+    private val formImageTracker: FormImageTracker
 ): ViewModel() {
     enum class AddProductFormField {
         NAME,
@@ -145,6 +147,8 @@ class ProductFormViewModel @Inject constructor (
 
                 initialMultipliersData = multiplierFormStateListToComparisionData(
                     multipliersManager.multipliers.value)
+
+                formImageTracker.init(productWithMultipliers.product.imageUrl)
             } else {
                 _uiEvent.emit(ProductFormUiEvent.ProductNotFound("Error: Product with ID $id not found. Therefore the form cannot be loaded."))
             }
@@ -161,6 +165,7 @@ class ProductFormViewModel @Inject constructor (
     }
 
     fun onImageChanged(newPath: String) {
+        formImageTracker.onImageChanged(newPath)
         _formState.update {
             it.copy(imagePath = newPath)
         }
@@ -209,7 +214,16 @@ class ProductFormViewModel @Inject constructor (
                     multipliers = multipliersManager.getProductMultipliers()
                 )
             }
+            formImageTracker.markAsSaved()
+            formImageTracker.cleanUp()
+
             _uiEvent.emit(ProductFormUiEvent.NavigateBack)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+        formImageTracker.cleanUp()
     }
 }

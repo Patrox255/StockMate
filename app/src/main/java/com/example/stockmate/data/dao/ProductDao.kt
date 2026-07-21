@@ -26,6 +26,9 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :productId")
     suspend fun getProductWithMultipliers(productId: Long): ProductWithMultipliers?
 
+    @Query("SELECT * FROM products WHERE id = :productId")
+    suspend fun getProductById(productId: Long): Product?
+
     @Transaction
     @Query("SELECT * FROM products")
     fun getAllProductsWithMultipliersFlow(): Flow<List<ProductWithMultipliers>>
