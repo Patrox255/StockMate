@@ -10,14 +10,17 @@ import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductMultiplier
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.entity.StockLog
+import com.example.stockmate.data.util.img.ImageStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class ProductRepository(
+class ProductRepository @Inject constructor(
     private val db: AppDatabase,
     private val productDao: ProductDao,
     private val productMultiplierDao: ProductMultiplierDao,
-    private val stockLogDao: StockLogDao
+    private val stockLogDao: StockLogDao,
+    private val imageStorage: ImageStorage
 ) {
     fun getAllProductsWithMultipliersFlow(): Flow<List<ProductWithMultipliers>> =
         productDao.getAllProductsWithMultipliersFlow()
@@ -50,8 +53,12 @@ class ProductRepository(
 
     suspend fun deleteProduct(productId: Long) {
         db.withWriteTransaction {
+            val productToDelete = productDao.getProductById(productId)
             productMultiplierDao.deleteMultipliersByProductIds(listOf(productId))
             productDao.deleteProductsByIds(listOf(productId))
+            productToDelete?.imageUrl?.let { imagePath ->
+                imageStorage.deleteImage(imagePath)
+            }
         }
     }
 

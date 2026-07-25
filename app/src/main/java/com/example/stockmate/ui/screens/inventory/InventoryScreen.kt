@@ -1,8 +1,10 @@
 package com.example.stockmate.ui.screens.inventory
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,8 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
@@ -31,9 +35,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.util.img.ImgDisplayGuidelines
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
+import com.example.stockmate.ui.components.img.ImgDisplay
+import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
@@ -45,6 +55,64 @@ fun InventoryScreen(
     onNavigateToDetails: (productId: Long) -> Unit,
     onNavigateToAddProduct: () -> Unit
 ) {
+    @Composable
+    fun ProductItem(
+        productWithMultipliers: ProductWithMultipliers,
+        viewModel: InventoryViewModel,
+        onNavigateToDetails: (productId: Long) -> Unit
+    ) {
+        val (product, multipliers) = productWithMultipliers
+
+        var pendingDifference by remember { mutableStateOf(0f) }
+        var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
+        var showDialog by remember {mutableStateOf(false)}
+
+        LaunchedEffect(multipliers) {
+            selectedMultiplier =
+                multipliers.find { it.id == selectedMultiplier?.id } ?: multipliers.firstOrNull()
+        }
+
+        InventoryScreenProductItem(
+            productWithMultipliers,
+            onNavigateToDetails
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            selectedMultiplier?.let { safeMultiplier ->
+                StockAdjustmentControls(
+                    multipliers = multipliers,
+                    currentMultiplier = safeMultiplier,
+                    onMultiplierSelected = { multiplier ->
+                        selectedMultiplier = multiplier
+                    },
+                    onMinusClick = {
+                        pendingDifference = -safeMultiplier.value
+                        showDialog = true
+                    },
+                    onPlusClick = {
+                        pendingDifference = safeMultiplier.value
+                        showDialog = true
+                    },
+                    productUnit = product.unit
+                )
+            } ?: run {
+                ProductNoMultipliersConfiguredMessage()
+            }
+        }
+
+        if (showDialog) {
+            SelectStockAdjustmentReasonDialog(
+                onDismiss = {
+                    showDialog = false
+                },
+                onReasonSelected = { reason ->
+                    viewModel.changeStock(product, pendingDifference, reason)
+                    showDialog = false
+                }
+            )
+        }
+    }
+
     val products by viewModel.allProducts.collectAsState()
 
     Scaffold(
@@ -64,7 +132,11 @@ fun InventoryScreen(
         ) {
             items(products) {
                     product ->
-                ProductItem(productWithMultipliers = product, viewModel = viewModel, onNavigateToDetails = onNavigateToDetails)
+                ProductItem(
+                    productWithMultipliers = product,
+                    viewModel = viewModel,
+                    onNavigateToDetails = onNavigateToDetails
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -102,9 +174,24 @@ fun ProductItem(
                     .fillMaxWidth()
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ImgDisplay(
+                        fileName = product.imageUrl,
+                        currentImageDescription = "Image of ${product.name}",
+                        noImageNotification = "No image available for ${product.name}",
+                        imgDisplayGuidelines = ProductImgDisplayGuidelines.InventoryItem
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = product.name, style = MaterialTheme.typography.titleLarge)
 
                     Spacer(modifier = Modifier.height(4.dp))

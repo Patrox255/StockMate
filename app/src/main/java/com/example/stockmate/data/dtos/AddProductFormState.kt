@@ -6,4 +6,5 @@ data class AddProductFormState(
     val targetStock: String = "",
     val packageSize: String = "1",
     val currentStock: String = "0",
+    val imagePath: String? = null,
 )

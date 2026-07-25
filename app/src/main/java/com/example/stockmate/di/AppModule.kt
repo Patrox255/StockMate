@@ -8,6 +8,7 @@ import com.example.stockmate.data.dao.ProductDao
 import com.example.stockmate.data.dao.ProductMultiplierDao
 import com.example.stockmate.data.dao.StockLogDao
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.img.ImageStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -47,11 +48,19 @@ class AppModule {
         db: AppDatabase,
         productDao: ProductDao,
         productMultiplierDao: ProductMultiplierDao,
-        stockLogDao: StockLogDao
+        stockLogDao: StockLogDao,
+        imageStorage: ImageStorage
     ) = ProductRepository(
         db,
         productDao,
         productMultiplierDao,
-        stockLogDao
+        stockLogDao,
+        imageStorage
     )
+
+    @Provides
+    @Singleton
+    fun provideImageStorage(
+        @ApplicationContext context: Context
+    ): ImageStorage = ImageStorage(context)
 }

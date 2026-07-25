@@ -6,6 +6,8 @@ import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.img.ImageStorage
+import com.example.stockmate.data.util.img.OrphanedProductImagesCleaner
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor (
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val imageStorage: ImageStorage,
 ): ViewModel() {
     var allProducts: StateFlow<List<ProductWithMultipliers>> = productRepository.getAllProductsWithMultipliersFlow()
         .stateIn(

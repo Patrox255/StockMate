@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProductDetailsViewModel @Inject constructor(
     private val repository: ProductRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
 ): ViewModel() {
     private val productId = checkNotNull(savedStateHandle.get<Long>("productId"))
 
