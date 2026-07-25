@@ -1,6 +1,7 @@
 package com.example.stockmate.di
 
 import com.example.stockmate.data.http.PixabayApi
+import com.example.stockmate.data.http.interceptors.RetryInterceptor
 import com.example.stockmate.data.repository.PixabayImageRepository
 import dagger.Module
 import dagger.Provides
@@ -29,6 +30,10 @@ object NetworkModule {
         HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
+
+    @Provides
+    @Singleton
+    fun provideRetryInterceptor(): RetryInterceptor = RetryInterceptor()
 
     @Provides
     @Singleton

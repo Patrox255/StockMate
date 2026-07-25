@@ -3,7 +3,7 @@ package com.example.stockmate.ui.viewmodels.img
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject

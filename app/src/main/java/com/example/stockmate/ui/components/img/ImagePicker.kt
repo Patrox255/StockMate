@@ -1,8 +1,5 @@
 package com.example.stockmate.ui.components.img
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,10 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImgDisplayGuidelines
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.viewmodels.img.ImagePickerViewModel
 
 @Composable
@@ -62,7 +59,7 @@ fun ImagePicker(
                 viewmodel.getImgAbsolutePathBasedOnDeviceStorage(currentImagePath) else null,
             currentImageDescription = currentImageDescription,
             noImageNotification = noImageNotification,
-            contentScale = ContentScale.Crop
+            imgDisplayGuidelines = ProductImgDisplayGuidelines.FormImagePicker
         )
     }
 

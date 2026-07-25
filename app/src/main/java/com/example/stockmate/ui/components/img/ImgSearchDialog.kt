@@ -19,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.remote.img.SearchableImage
 import com.example.stockmate.data.remote.img.SearchableImageSearchResult
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.GenericErrorMessage
 import com.example.stockmate.ui.viewmodels.img.BaseImageSearchViewModel
 
@@ -166,17 +167,14 @@ fun <T : SearchableImage, Y : SearchableImageSearchResult<T>> ImageSearchDialog(
                             absoluteImgPath = image.previewUrl,
                             currentImageDescription = image.description,
                             noImageNotification = "No image available",
-                            iconModifier = Modifier.size(120.dp),
-                            imgModifier = Modifier
-                                .size(120.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                            additionalImgModifier = Modifier
                                 .border(
                                     width = if (isSelected) 4.dp else 0.dp,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable { if (!isDownloading) viewModel.updateSelectedImage(image) },
-                            contentScale = ContentScale.Crop
+                            imgDisplayGuidelines = ProductImgDisplayGuidelines.ImgSearchDialog
                         )
                     }
 

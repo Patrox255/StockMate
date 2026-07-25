@@ -1,20 +1,18 @@
-package com.example.stockmate.data.util
+package com.example.stockmate.data.util.img
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
 import java.net.URL
 import java.util.UUID
-import javax.inject.Inject
+
+private const val PRODUCT_IMG_PREFIX = "product_"
 
 class ImageStorage (
     private val context: Context
@@ -133,7 +131,7 @@ class ImageStorage (
     }
 
     private fun createImgFileName(extension: String): String {
-        val fileName = "product_${UUID.randomUUID()}.${extension}"
+        val fileName = "${PRODUCT_IMG_PREFIX}${UUID.randomUUID()}.${extension}"
         return fileName
     }
 
@@ -155,6 +153,12 @@ class ImageStorage (
         }
 
         return inSampleSize
+    }
+
+    fun getAllSavedProductImageNames(): List<String> {
+        return context.filesDir.listFiles { file ->
+            file.isFile && file.name.startsWith(PRODUCT_IMG_PREFIX)
+        }?.map { it.name } ?: emptyList()
     }
 
 }

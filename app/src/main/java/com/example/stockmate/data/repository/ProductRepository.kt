@@ -10,7 +10,7 @@ import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductMultiplier
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.entity.StockLog
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject

@@ -51,4 +51,7 @@ interface ProductDao {
 
     @Query("SELECT * FROM products WHERE currentStock < targetStock")
     fun getShoppingListFlow(): Flow<List<Product>>
+
+    @Query("SELECT imageUrl FROM products WHERE imageUrl IS NOT NULL")
+    suspend fun getAllUsedImagePaths(): List<String>
 }

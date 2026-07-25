@@ -4,7 +4,7 @@ import com.example.stockmate.data.http.PIXABAY_DEFAULT_PAGE_SIZE
 import com.example.stockmate.data.remote.img.PixabaySearchResponseImgSearch
 import com.example.stockmate.data.remote.img.PixabaySearchResultImgSearch
 import com.example.stockmate.data.repository.PixabayImageRepository
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

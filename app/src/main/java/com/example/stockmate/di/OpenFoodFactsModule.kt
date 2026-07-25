@@ -2,6 +2,7 @@ package com.example.stockmate.di
 
 import com.example.stockmate.data.http.OpenFoodFactsApi
 import com.example.stockmate.data.http.interceptors.OpenFoodFactsInterceptor
+import com.example.stockmate.data.http.interceptors.RetryInterceptor
 import com.example.stockmate.data.repository.OpenFoodFactsRepository
 import dagger.Module
 import dagger.Provides
@@ -27,10 +28,12 @@ object OpenFoodFactsModule {
     @OpenFoodFactsClient
     fun provideOpenFoodFactsOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        openFoodFactsInterceptor: OpenFoodFactsInterceptor
+        openFoodFactsInterceptor: OpenFoodFactsInterceptor,
+        retryInterceptor: RetryInterceptor
     ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
+        .addInterceptor(retryInterceptor)
         .addInterceptor(openFoodFactsInterceptor)
+        .addInterceptor(loggingInterceptor)
         .build()
 
     @Provides

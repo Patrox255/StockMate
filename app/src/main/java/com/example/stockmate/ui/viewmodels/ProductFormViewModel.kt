@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.dtos.AddProductFormState
 import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
-import com.example.stockmate.data.entity.Product
+import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.mappers.toProduct
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.util.FormImageTracker
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import com.example.stockmate.data.validationUtil.FormValidationUtil
 import com.example.stockmate.data.validationUtil.FormValidator
 import com.example.stockmate.data.validationUtil.ValidatorGeneratorData
@@ -192,15 +193,9 @@ class ProductFormViewModel @Inject constructor (
 
 
         viewModelScope.launch {
-
-            val newProduct = Product(
+            val newProduct = current.toProduct(
                 id = productId ?: 0L,
-                name = current.name,
-                unit = current.unit,
-                currentStock = 0f,
-                targetStock = current.targetStock.toFloat(),
-                packageSize = current.packageSize.toFloat(),
-                imageUrl = current.imagePath
+                currentStock = 0f
             )
 
             if (isEditMode) {
@@ -219,6 +214,20 @@ class ProductFormViewModel @Inject constructor (
 
             _uiEvent.emit(ProductFormUiEvent.NavigateBack)
         }
+    }
+
+    fun getProductWithMultipliersForPreview(): ProductWithMultipliers {
+        val current = _formState.value
+        val product = current.toProduct(
+            id = productId ?: 0L,
+            currentStock = 0f
+        )
+        val multipliers = multipliersManager.getProductMultipliers()
+
+        return ProductWithMultipliers(
+            product = product,
+            multipliers = multipliers
+        )
     }
 
     override fun onCleared() {

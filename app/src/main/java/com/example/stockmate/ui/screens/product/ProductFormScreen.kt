@@ -30,15 +30,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.form.FormTextField
 import com.example.stockmate.ui.components.GenericErrorMessage
 import com.example.stockmate.ui.components.LoadingIndicator
+import com.example.stockmate.ui.components.TabbedComponent
+import com.example.stockmate.ui.components.TabbedComponentEntry
 import com.example.stockmate.ui.components.img.ImagePicker
+import com.example.stockmate.ui.components.img.ImgPreviewAmongDifferentStyles
 import com.example.stockmate.ui.components.img.LocalGallerySource
 import com.example.stockmate.ui.components.img.OpenFoodFactsSource
 import com.example.stockmate.ui.components.img.PixabaySource
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.navigation.NavigateBackDialog
+import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductMultipliersManageFormSection
 import com.example.stockmate.ui.viewmodels.ProductFormUiEvent
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
@@ -147,6 +152,41 @@ fun ProductFormScreen(
                 )
             )
 
+//            ImgPreviewAmongDifferentStyles(
+//                absoluteImgPath = formState.imagePath,
+//                fileName = null,
+//                nameToStyleMap = mapOf(
+//                    "Inventory item" to com.example.stockmate.data.util.img.ProductImgDisplayGuidelines.InventoryItem,
+//                    "Product details" to com.example.stockmate.data.util.img.ProductImgDisplayGuidelines.ProductDetails,
+//                ),
+//                currentImageDescription = "Current product image",
+//                noImageDescription = "No image selected"
+//            )
+            TabbedComponent(
+                entries = listOf(
+                    TabbedComponentEntry(
+                        title = "Inventory item",
+                        content = {
+                            InventoryScreenProductItem(
+                                productWithMultipliers = viewModel.getProductWithMultipliersForPreview(),
+                                onNavigateToDetails = {},
+                                bottomContent = null
+                            )
+                        }
+                    ),
+                    TabbedComponentEntry(
+                        title = "Product details",
+                        content = {
+                            ProductDetailsTopContent(
+                                productWithMultipliers = viewModel.getProductWithMultipliersForPreview(),
+                                isScrollable = false
+                            )
+                        }
+                    )
+                ),
+                header = "Your ${if (viewModel.isEditMode) "edited" else "new"} product will look like:"
+            )
+
             FormTextField(
                 value = formState.name,
                 onValueChange = {viewModel.onNameChanged(it)},
@@ -209,4 +249,9 @@ fun ProductFormScreen(
             }
         }
     }
+}
+
+@Composable
+fun TabbedComponentEntry(title: String, content: () -> Unit) {
+    TODO("Not yet implemented")
 }

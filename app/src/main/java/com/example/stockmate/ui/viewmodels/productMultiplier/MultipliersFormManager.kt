@@ -3,6 +3,7 @@ package com.example.stockmate.ui.viewmodels.productMultiplier
 import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
 import com.example.stockmate.data.entity.ProductMultiplier
+import com.example.stockmate.data.mappers.toMultipliers
 import com.example.stockmate.data.validationUtil.validationFuns
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -86,14 +87,7 @@ class MultipliersFormManager(
     }
 
     fun getProductMultipliers(): List<ProductMultiplier> {
-        return _multipliers.value.filter(this::isMultiplierValid).mapIndexed { index, multiplier ->
-            ProductMultiplier(
-                productId = 0,
-                name = multiplier.name,
-                value = multiplier.value.toFloat(),
-                sortOrder = index
-            )
-        }
+        return _multipliers.value.filter(this::isMultiplierValid).toMultipliers(0L)
     }
 
     fun loadExistingMultipliers(existingEntities: List<ProductMultiplier>) {

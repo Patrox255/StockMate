@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material3.Icon
@@ -14,12 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
+import com.example.stockmate.data.util.img.ImgDisplayGuidelines
 
 @Composable
 fun ImgDisplay(
@@ -27,11 +26,11 @@ fun ImgDisplay(
     fileName: String? = null,
     currentImageDescription: String,
     noImageNotification: String,
-    contentScale: ContentScale = ContentScale.Crop,
-    imgModifier: Modifier = Modifier.fillMaxSize(),
-    iconModifier: Modifier = Modifier.size(48.dp),
-    noImageNotificationVisible: Boolean = false
+    imgDisplayGuidelines: ImgDisplayGuidelines,
+    additionalImgModifier: Modifier = Modifier
 ) {
+    val combinedImgModifier = additionalImgModifier.then(imgDisplayGuidelines.imgModifier)
+
     val fullImagePath = absoluteImgPath ?: when {
         fileName == null -> null
         fileName.startsWith("http") -> fileName
@@ -42,8 +41,8 @@ fun ImgDisplay(
         AsyncImage(
             model = fullImagePath,
             contentDescription = currentImageDescription,
-            modifier = imgModifier,
-            contentScale = contentScale
+            modifier = combinedImgModifier,
+            contentScale = imgDisplayGuidelines.contentScale
         )
     } else {
         Column(
@@ -54,11 +53,11 @@ fun ImgDisplay(
             Icon(
                 imageVector = Icons.Default.AddPhotoAlternate,
                 contentDescription = noImageNotification,
-                modifier = iconModifier,
+                modifier = imgDisplayGuidelines.iconModifier,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (noImageNotificationVisible) {
+            if (imgDisplayGuidelines.noImageNotificationVisible) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = noImageNotification,

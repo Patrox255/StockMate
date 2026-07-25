@@ -4,7 +4,7 @@ import com.example.stockmate.data.http.OFF_DEFAULT_PAGE_SIZE
 import com.example.stockmate.data.remote.img.OpenFoodFactsImgSearchResponseImgSearch
 import com.example.stockmate.data.remote.img.OpenFoodFactsImgSearchResultImgSearch
 import com.example.stockmate.data.repository.OpenFoodFactsRepository
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 

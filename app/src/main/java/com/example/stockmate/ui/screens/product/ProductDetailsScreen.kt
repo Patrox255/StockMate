@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.form.DeleteConfirmationDialog
 import com.example.stockmate.ui.components.img.ImgDisplay
@@ -109,28 +110,24 @@ fun ProductDetailsScreen(
 }
 
 @Composable
-fun ProductDetailsContent(
+fun ProductDetailsTopContent(
     productWithMultipliers: ProductWithMultipliers,
     modifier: Modifier = Modifier,
-    onStockChange: (Product, Float, ChangeReason) -> Unit
+    content: @Composable ((productWithMultipliers: ProductWithMultipliers) -> Unit)? = null,
+    isScrollable: Boolean = true
 ) {
-    val (product, multipliers) = productWithMultipliers
-    val focusManager = LocalFocusManager.current
-
-    var showDialog by remember { mutableStateOf(false) }
-    var pendingDifference by remember { mutableFloatStateOf(0f) }
-    var inputText by remember { mutableStateOf(product.currentStock.toString()) }
-    var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
-
-    LaunchedEffect(product.currentStock) {
-        inputText = product.currentStock.toString()
+    val (product, _) = productWithMultipliers
+    val columnModifier = modifier
+        .fillMaxSize()
+        .padding(16.dp)
+    val finalColumnModifier = if (isScrollable) {
+        columnModifier.verticalScroll(rememberScrollState())
+    } else {
+        columnModifier
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
+        modifier = finalColumnModifier
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -167,124 +164,149 @@ fun ProductDetailsContent(
                 fileName = product.imageUrl,
                 currentImageDescription = "Product Image",
                 noImageNotification = "No image available. Head to edit to add one.",
-                contentScale = ContentScale.Fit,
-                imgModifier = Modifier.fillMaxSize(),
-                iconModifier = Modifier.size(64.dp),
-                noImageNotificationVisible = true
+                imgDisplayGuidelines = ProductImgDisplayGuidelines.ProductDetails
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        content?.invoke(productWithMultipliers)
+    }
+}
 
-        Text(text = "Quick Actions", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Box(modifier = Modifier.padding(16.dp)) {
-                if (selectedMultiplier != null) {
-                    StockAdjustmentControls(
-                        multipliers = multipliers,
-                        currentMultiplier = selectedMultiplier!!,
-                        onMultiplierSelected = { multiplier -> selectedMultiplier = multiplier },
-                        onMinusClick = {
-                            pendingDifference = -(selectedMultiplier?.value ?: 0f)
-                            showDialog = true
-                        },
-                        onPlusClick = {
-                            pendingDifference = (selectedMultiplier?.value ?: 0f)
-                            showDialog = true
-                        },
-                        productUnit = product.unit
+
+@Composable
+fun ProductDetailsContent(
+    productWithMultipliers: ProductWithMultipliers,
+    modifier: Modifier = Modifier,
+    onStockChange: (Product, Float, ChangeReason) -> Unit
+) {
+    val (product, multipliers) = productWithMultipliers
+    val focusManager = LocalFocusManager.current
+
+    var showDialog by remember { mutableStateOf(false) }
+    var pendingDifference by remember { mutableFloatStateOf(0f) }
+    var inputText by remember { mutableStateOf(product.currentStock.toString()) }
+    var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
+
+    LaunchedEffect(product.currentStock) {
+        inputText = product.currentStock.toString()
+    }
+
+    ProductDetailsTopContent(
+        productWithMultipliers = productWithMultipliers,
+        modifier = modifier,
+        content = {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(text = "Quick Actions", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(modifier = Modifier.padding(16.dp)) {
+                    if (selectedMultiplier != null) {
+                        StockAdjustmentControls(
+                            multipliers = multipliers,
+                            currentMultiplier = selectedMultiplier!!,
+                            onMultiplierSelected = { multiplier -> selectedMultiplier = multiplier },
+                            onMinusClick = {
+                                pendingDifference = -(selectedMultiplier?.value ?: 0f)
+                                showDialog = true
+                            },
+                            onPlusClick = {
+                                pendingDifference = (selectedMultiplier?.value ?: 0f)
+                                showDialog = true
+                            },
+                            productUnit = product.unit
+                        )
+                    } else {
+                        ProductNoMultipliersConfiguredMessage()
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(text = "Precise Adjustment", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OutlinedTextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        label = { Text("Set stock to:") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.5f)
+                            .onFocusChanged { focusState ->
+                                if (!focusState.isFocused) {
+                                    val typedValue = inputText.toFloatOrNull()
+                                    if (typedValue != null && typedValue != product.currentStock) {
+                                        pendingDifference = typedValue - product.currentStock
+                                        showDialog = true
+                                    } else {
+                                        inputText = product.currentStock.toString()
+                                    }
+                                }
+                            },
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                focusManager.clearFocus()
+                            }
+                        )
                     )
-                } else {
-                    ProductNoMultipliersConfiguredMessage()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val sliderMax = if (product.targetStock > 0) product.targetStock * 4 else 100f
+                    var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
+
+                    Slider(
+                        value = sliderPosition,
+                        onValueChange = {
+                            sliderPosition = it
+                            val roundedVal = (it * 10f).roundToInt() / 10f
+                            sliderPosition = roundedVal
+                            inputText = roundedVal.toString()
+                        },
+                        onValueChangeFinished = {
+                            if (sliderPosition != product.currentStock) {
+                                pendingDifference = sliderPosition - product.currentStock
+                                showDialog = true
+                            }
+                        },
+                        valueRange = 0f..sliderMax
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedCard(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("🧠 AI Analytics", style = MaterialTheme.typography.titleSmall)
+                    Text("Coming soon: predicted consumption based on history", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(text = "Precise Adjustment", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                OutlinedTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    label = { Text("Set stock to:") },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused) {
-                                val typedValue = inputText.toFloatOrNull()
-                                if (typedValue != null && typedValue != product.currentStock) {
-                                    pendingDifference = typedValue - product.currentStock
-                                    showDialog = true
-                                } else {
-                                    inputText = product.currentStock.toString()
-                                }
-                            }
-                        },
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.clearFocus()
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val sliderMax = if (product.targetStock > 0) product.targetStock * 4 else 100f
-                var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
-
-                Slider(
-                    value = sliderPosition,
-                    onValueChange = {
-                        sliderPosition = it
-                        val roundedVal = (it * 10f).roundToInt() / 10f
-                        sliderPosition = roundedVal
-                        inputText = roundedVal.toString()
-                    },
-                    onValueChangeFinished = {
-                        if (sliderPosition != product.currentStock) {
-                            pendingDifference = sliderPosition - product.currentStock
-                            showDialog = true
-                        }
-                    },
-                    valueRange = 0f..sliderMax
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("🧠 AI Analytics", style = MaterialTheme.typography.titleSmall)
-                Text("Coming soon: predicted consumption based on history", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
+    )
 
     if (showDialog) {
         SelectStockAdjustmentReasonDialog(

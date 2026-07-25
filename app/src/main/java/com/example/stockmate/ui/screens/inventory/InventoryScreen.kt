@@ -40,7 +40,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.util.img.ImgDisplayGuidelines
+import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.img.ImgDisplay
+import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
@@ -52,6 +55,64 @@ fun InventoryScreen(
     onNavigateToDetails: (productId: Long) -> Unit,
     onNavigateToAddProduct: () -> Unit
 ) {
+    @Composable
+    fun ProductItem(
+        productWithMultipliers: ProductWithMultipliers,
+        viewModel: InventoryViewModel,
+        onNavigateToDetails: (productId: Long) -> Unit
+    ) {
+        val (product, multipliers) = productWithMultipliers
+
+        var pendingDifference by remember { mutableStateOf(0f) }
+        var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
+        var showDialog by remember {mutableStateOf(false)}
+
+        LaunchedEffect(multipliers) {
+            selectedMultiplier =
+                multipliers.find { it.id == selectedMultiplier?.id } ?: multipliers.firstOrNull()
+        }
+
+        InventoryScreenProductItem(
+            productWithMultipliers,
+            onNavigateToDetails
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            selectedMultiplier?.let { safeMultiplier ->
+                StockAdjustmentControls(
+                    multipliers = multipliers,
+                    currentMultiplier = safeMultiplier,
+                    onMultiplierSelected = { multiplier ->
+                        selectedMultiplier = multiplier
+                    },
+                    onMinusClick = {
+                        pendingDifference = -safeMultiplier.value
+                        showDialog = true
+                    },
+                    onPlusClick = {
+                        pendingDifference = safeMultiplier.value
+                        showDialog = true
+                    },
+                    productUnit = product.unit
+                )
+            } ?: run {
+                ProductNoMultipliersConfiguredMessage()
+            }
+        }
+
+        if (showDialog) {
+            SelectStockAdjustmentReasonDialog(
+                onDismiss = {
+                    showDialog = false
+                },
+                onReasonSelected = { reason ->
+                    viewModel.changeStock(product, pendingDifference, reason)
+                    showDialog = false
+                }
+            )
+        }
+    }
+
     val products by viewModel.allProducts.collectAsState()
 
     Scaffold(
@@ -71,7 +132,11 @@ fun InventoryScreen(
         ) {
             items(products) {
                     product ->
-                ProductItem(productWithMultipliers = product, viewModel = viewModel, onNavigateToDetails = onNavigateToDetails)
+                ProductItem(
+                    productWithMultipliers = product,
+                    viewModel = viewModel,
+                    onNavigateToDetails = onNavigateToDetails
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -122,8 +187,7 @@ fun ProductItem(
                         fileName = product.imageUrl,
                         currentImageDescription = "Image of ${product.name}",
                         noImageNotification = "No image available for ${product.name}",
-                        imgModifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        imgDisplayGuidelines = ProductImgDisplayGuidelines.InventoryItem
                     )
                 }
 

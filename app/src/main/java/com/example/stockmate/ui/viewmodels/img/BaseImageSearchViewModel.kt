@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.exceptions.NoProductsFoundException
 import com.example.stockmate.data.remote.img.SearchableImage
 import com.example.stockmate.data.remote.img.SearchableImageSearchResult
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

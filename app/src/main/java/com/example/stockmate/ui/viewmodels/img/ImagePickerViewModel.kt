@@ -1,7 +1,7 @@
 package com.example.stockmate.ui.viewmodels.img
 
 import androidx.lifecycle.ViewModel
-import com.example.stockmate.data.util.ImageStorage
+import com.example.stockmate.data.util.img.ImageStorage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
