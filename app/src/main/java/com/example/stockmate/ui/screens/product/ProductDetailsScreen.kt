@@ -9,8 +9,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -20,13 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.data.entity.ChangeReason
-import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.LoadingIndicator
@@ -34,6 +29,7 @@ import com.example.stockmate.ui.components.form.DeleteConfirmationDialog
 import com.example.stockmate.ui.components.img.ImgDisplay
 import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
+import com.example.stockmate.ui.components.product.ProductPredictionCard
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
 import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
@@ -78,7 +74,7 @@ fun ProductDetailsScreen(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures (onTap = {
+                detectTapGestures(onTap = {
                     focusManager.clearFocus()
                 })
             },
@@ -102,9 +98,7 @@ fun ProductDetailsScreen(
         ProductDetailsContent(
             productWithMultipliers = details,
             modifier = Modifier.padding(paddingValues),
-            onStockChange = { product, diff, reason ->
-                viewModel.changeStock(product, diff, reason)
-            }
+            viewModel = viewModel
         )
     }
 }
@@ -177,15 +171,17 @@ fun ProductDetailsTopContent(
 fun ProductDetailsContent(
     productWithMultipliers: ProductWithMultipliers,
     modifier: Modifier = Modifier,
-    onStockChange: (Product, Float, ChangeReason) -> Unit
+    viewModel: ProductDetailsViewModel
 ) {
     val (product, multipliers) = productWithMultipliers
     val focusManager = LocalFocusManager.current
 
-    var showDialog by remember { mutableStateOf(false) }
-    var pendingDifference by remember { mutableFloatStateOf(0f) }
     var inputText by remember { mutableStateOf(product.currentStock.toString()) }
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
+    val sliderMax = if (product.targetStock > 0) product.targetStock * 4 else 100f
+    var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
+    val showDialog by viewModel.productStockManager.showDialog.collectAsState()
+    val predictionState by viewModel.predictionState.collectAsState()
 
     LaunchedEffect(product.currentStock) {
         inputText = product.currentStock.toString()
@@ -210,12 +206,10 @@ fun ProductDetailsContent(
                             currentMultiplier = selectedMultiplier!!,
                             onMultiplierSelected = { multiplier -> selectedMultiplier = multiplier },
                             onMinusClick = {
-                                pendingDifference = -(selectedMultiplier?.value ?: 0f)
-                                showDialog = true
+                                viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(selectedMultiplier)
                             },
                             onPlusClick = {
-                                pendingDifference = (selectedMultiplier?.value ?: 0f)
-                                showDialog = true
+                                viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(selectedMultiplier)
                             },
                             productUnit = product.unit
                         )
@@ -251,8 +245,8 @@ fun ProductDetailsContent(
                                 if (!focusState.isFocused) {
                                     val typedValue = inputText.toFloatOrNull()
                                     if (typedValue != null && typedValue != product.currentStock) {
-                                        pendingDifference = typedValue - product.currentStock
-                                        showDialog = true
+                                        viewModel.productStockManager.pendingDifferenceUpdate(typedValue - product.currentStock)
+                                        viewModel.productStockManager.showDialogUpdate(true)
                                     } else {
                                         inputText = product.currentStock.toString()
                                     }
@@ -267,9 +261,6 @@ fun ProductDetailsContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val sliderMax = if (product.targetStock > 0) product.targetStock * 4 else 100f
-                    var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
-
                     Slider(
                         value = sliderPosition,
                         onValueChange = {
@@ -280,8 +271,9 @@ fun ProductDetailsContent(
                         },
                         onValueChangeFinished = {
                             if (sliderPosition != product.currentStock) {
-                                pendingDifference = sliderPosition - product.currentStock
-                                showDialog = true
+                                val roundedVal = (sliderPosition * 10f).roundToInt() / 10f
+                                viewModel.productStockManager.pendingDifferenceUpdate(roundedVal - product.currentStock)
+                                viewModel.productStockManager.showDialogUpdate(true)
                             }
                         },
                         valueRange = 0f..sliderMax
@@ -291,32 +283,22 @@ fun ProductDetailsContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("🧠 AI Analytics", style = MaterialTheme.typography.titleSmall)
-                    Text("Coming soon: predicted consumption based on history", style = MaterialTheme.typography.bodySmall)
-                }
-            }
+            ProductPredictionCard(
+                predictionState = predictionState,
+                modifier = Modifier.padding(16.dp)
+            )
         }
     )
 
     if (showDialog) {
         SelectStockAdjustmentReasonDialog(
             onDismiss = {
-                showDialog = false
+                viewModel.productStockManager.StockAdjustmentDialogOnDismiss()
                 inputText = product.currentStock.toString()
+                sliderPosition = product.currentStock
             },
-            onReasonSelected = { reason ->
-                onStockChange(product, pendingDifference, reason)
-                showDialog = false
+            onReasonSelected = {reason ->
+                viewModel.onReasonSelected(product, reason)
             }
         )
     }

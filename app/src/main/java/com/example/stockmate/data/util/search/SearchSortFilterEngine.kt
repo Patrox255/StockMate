@@ -21,7 +21,8 @@ enum class SortDirection {
 data class SortOption<T>(
     val id: String,
     val displayName: String,
-    val comparator: Comparator<T>
+    val ascendingComparator: Comparator<T>,
+    val descendingComparator: Comparator<T> = ascendingComparator.reversed()
 )
 
 data class ActiveSort<T>(
@@ -109,9 +110,9 @@ class SearchSortFilterEngine<T>(
                 var combinedComparator: Comparator<T>? = null
                 for (sort in sorts) {
                     val nextComparator = if (sort.direction == SortDirection.DESC) {
-                        sort.option.comparator.reversed()
+                        sort.option.descendingComparator
                     } else {
-                        sort.option.comparator
+                        sort.option.ascendingComparator
                     }
                     combinedComparator = combinedComparator?.then(nextComparator) ?: nextComparator
                 }

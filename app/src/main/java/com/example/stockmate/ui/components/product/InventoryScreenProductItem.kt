@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.img.ImgDisplay
+import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun InventoryScreenProductItem(
@@ -112,7 +114,7 @@ fun InventoryScreenProductItem(
                         )
 
                         Text(
-                            text = "${product.stockPercentage}%",
+                            text = "${String.format(LocalLocale.current.platformLocale, "%.1f", product.stockPercentage)}%",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

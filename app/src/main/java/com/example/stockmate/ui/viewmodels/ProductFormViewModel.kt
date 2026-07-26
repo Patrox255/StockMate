@@ -41,7 +41,6 @@ class ProductFormViewModel @Inject constructor (
         NAME,
         UNIT,
         TARGET_STOCK,
-        PACKAGE_SIZE
     }
     private val formValidator = FormValidator(
         enumClass = AddProductFormField::class.java,
@@ -59,10 +58,6 @@ class ProductFormViewModel @Inject constructor (
             AddProductFormField.TARGET_STOCK to listOf(
                 FormValidationUtil.validateFloat()
             ),
-            AddProductFormField.PACKAGE_SIZE to listOf(
-                FormValidationUtil.validateFloat()
-
-            )
         )
     )
 
@@ -120,10 +115,6 @@ class ProductFormViewModel @Inject constructor (
         _formState.update { it.copy(targetStock = newStock) }
     }
 
-    val onPackageSizeChanged = formValidator.onFormFieldChangedGenerator(AddProductFormField.PACKAGE_SIZE) { newSize ->
-        _formState.update { it.copy(packageSize = newSize) }
-    }
-
     init {
         if (isEditMode) {
             loadProductData(productId!!)
@@ -140,7 +131,6 @@ class ProductFormViewModel @Inject constructor (
                     name = productWithMultipliers.product.name,
                     unit = productWithMultipliers.product.unit,
                     targetStock = productWithMultipliers.product.targetStock.toString(),
-                    packageSize = productWithMultipliers.product.packageSize.toString(),
                     currentStock = productWithMultipliers.product.currentStock.toString(),
                     imagePath = productWithMultipliers.product.imageUrl
                 )
@@ -178,7 +168,6 @@ class ProductFormViewModel @Inject constructor (
         val isFormValid = formValidator.validateBeforeSubmit(
             mapOf(
                 AddProductFormField.NAME to current.name,
-                AddProductFormField.PACKAGE_SIZE to current.packageSize,
                 AddProductFormField.TARGET_STOCK to current.targetStock,
                 AddProductFormField.UNIT to current.unit
             )
@@ -195,7 +184,7 @@ class ProductFormViewModel @Inject constructor (
         viewModelScope.launch {
             val newProduct = current.toProduct(
                 id = productId ?: 0L,
-                currentStock = 0f
+                currentStock = current.currentStock.toFloatOrNull() ?: 0f
             )
 
             if (isEditMode) {

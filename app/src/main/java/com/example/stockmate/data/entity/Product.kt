@@ -10,7 +10,6 @@ data class Product(
     val unit: String,
     val currentStock: Float,
     val targetStock: Float,
-    val packageSize: Float,
     val imageUrl: String? = null,
 
     val targetDays: Int? = null,

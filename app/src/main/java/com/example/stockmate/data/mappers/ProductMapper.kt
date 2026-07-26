@@ -16,7 +16,6 @@ fun AddProductFormState.toProduct(
         unit = unit,
         currentStock = currentStock,
         targetStock = targetStock.toFloatOrNull() ?: 0f,
-        packageSize = packageSize.toFloatOrNull() ?: 0f,
         imageUrl = imagePath
     )
 }

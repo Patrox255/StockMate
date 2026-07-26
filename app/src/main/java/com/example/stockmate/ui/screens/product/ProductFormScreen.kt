@@ -212,15 +212,6 @@ fun ProductFormScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            FormTextField(
-                value = formState.packageSize,
-                onValueChange = { viewModel.onPackageSizeChanged(it) },
-                label = "Package Size",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                errorMessages = errors[ProductFormViewModel.AddProductFormField.PACKAGE_SIZE] ?: emptyList(),
-                modifier = Modifier.fillMaxWidth()
-            )
-
             ProductMultipliersManageFormSection(
                 multipliers = multipliers,
                 onAddMultiplier = viewModel.multipliersManager::addEmptyMultiplier,

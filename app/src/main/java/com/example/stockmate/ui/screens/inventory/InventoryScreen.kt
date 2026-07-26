@@ -1,13 +1,9 @@
 package com.example.stockmate.ui.screens.inventory
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,12 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,24 +29,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.data.entity.ProductWithMultipliers
-import com.example.stockmate.data.util.img.ImgDisplayGuidelines
-import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
-import com.example.stockmate.ui.components.img.ImgDisplay
+import com.example.stockmate.data.dtos.ProductUiModel
 import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
+import com.example.stockmate.ui.components.product.ProductPredictionBadge
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
 import com.example.stockmate.ui.components.search.FilterSortBar
 import com.example.stockmate.ui.components.search.SearchBar
 import com.example.stockmate.ui.viewmodels.InventoryViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 
 @Composable
 fun InventoryScreen(
@@ -138,7 +124,7 @@ fun InventoryScreen(
                 ) {
                     items(products) { product ->
                         ProductItem(
-                            productWithMultipliers = product,
+                            productUiModel = product,
                             viewModel = viewModel,
                             onNavigateToDetails = onNavigateToDetails
                         )
@@ -152,15 +138,15 @@ fun InventoryScreen(
 
 @Composable
 fun ProductItem(
-    productWithMultipliers: ProductWithMultipliers,
+    productUiModel: ProductUiModel,
     viewModel: InventoryViewModel,
     onNavigateToDetails: (productId: Long) -> Unit
 ) {
+    val productWithMultipliers = productUiModel.productWithMultipliers
     val (product, multipliers) = productWithMultipliers
+    val showDialog = viewModel.productStockManager.showDialog.collectAsState().value
 
-    var pendingDifference by remember { mutableStateOf(0f) }
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
-    var showDialog by remember {mutableStateOf(false)}
 
     LaunchedEffect(multipliers) {
         selectedMultiplier =
@@ -181,28 +167,28 @@ fun ProductItem(
                     selectedMultiplier = multiplier
                 },
                 onMinusClick = {
-                    pendingDifference = -safeMultiplier.value
-                    showDialog = true
+                    viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(selectedMultiplier)
                 },
                 onPlusClick = {
-                    pendingDifference = safeMultiplier.value
-                    showDialog = true
+                    viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(selectedMultiplier)
                 },
                 productUnit = product.unit
             )
         } ?: run {
             ProductNoMultipliersConfiguredMessage()
         }
+
+        Spacer(modifier = Modifier.height(6.dp))
+        ProductPredictionBadge(
+            predictionState = productUiModel.predictionState
+        )
     }
 
     if (showDialog) {
         SelectStockAdjustmentReasonDialog(
-            onDismiss = {
-                showDialog = false
-            },
-            onReasonSelected = { reason ->
-                viewModel.changeStock(product, pendingDifference, reason)
-                showDialog = false
+            onDismiss = viewModel.productStockManager::StockAdjustmentDialogOnDismiss,
+            onReasonSelected = {reason ->
+                viewModel.onReasonSelected(product, reason)
             }
         )
     }
