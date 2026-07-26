@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.util.img.ImgDisplayGuidelines
@@ -47,7 +49,11 @@ import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
+import com.example.stockmate.ui.components.search.FilterSortBar
+import com.example.stockmate.ui.components.search.SearchBar
 import com.example.stockmate.ui.viewmodels.InventoryViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 
 @Composable
 fun InventoryScreen(
@@ -55,65 +61,10 @@ fun InventoryScreen(
     onNavigateToDetails: (productId: Long) -> Unit,
     onNavigateToAddProduct: () -> Unit
 ) {
-    @Composable
-    fun ProductItem(
-        productWithMultipliers: ProductWithMultipliers,
-        viewModel: InventoryViewModel,
-        onNavigateToDetails: (productId: Long) -> Unit
-    ) {
-        val (product, multipliers) = productWithMultipliers
-
-        var pendingDifference by remember { mutableStateOf(0f) }
-        var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
-        var showDialog by remember {mutableStateOf(false)}
-
-        LaunchedEffect(multipliers) {
-            selectedMultiplier =
-                multipliers.find { it.id == selectedMultiplier?.id } ?: multipliers.firstOrNull()
-        }
-
-        InventoryScreenProductItem(
-            productWithMultipliers,
-            onNavigateToDetails
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            selectedMultiplier?.let { safeMultiplier ->
-                StockAdjustmentControls(
-                    multipliers = multipliers,
-                    currentMultiplier = safeMultiplier,
-                    onMultiplierSelected = { multiplier ->
-                        selectedMultiplier = multiplier
-                    },
-                    onMinusClick = {
-                        pendingDifference = -safeMultiplier.value
-                        showDialog = true
-                    },
-                    onPlusClick = {
-                        pendingDifference = safeMultiplier.value
-                        showDialog = true
-                    },
-                    productUnit = product.unit
-                )
-            } ?: run {
-                ProductNoMultipliersConfiguredMessage()
-            }
-        }
-
-        if (showDialog) {
-            SelectStockAdjustmentReasonDialog(
-                onDismiss = {
-                    showDialog = false
-                },
-                onReasonSelected = { reason ->
-                    viewModel.changeStock(product, pendingDifference, reason)
-                    showDialog = false
-                }
-            )
-        }
-    }
-
-    val products by viewModel.allProducts.collectAsState()
+    val products = viewModel.displayedProducts.collectAsState().value
+    val activeSorts by viewModel.listEngine.activeSorts.collectAsState()
+    val filterGroups by viewModel.listEngine.filterGroups.collectAsState()
+    val searchQuery by viewModel.listEngine.searchQuery.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -124,20 +75,76 @@ fun InventoryScreen(
             }
         }
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp)
+                .padding(innerPadding)
         ) {
-            items(products) {
-                    product ->
-                ProductItem(
-                    productWithMultipliers = product,
-                    viewModel = viewModel,
-                    onNavigateToDetails = onNavigateToDetails
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { query ->
+                    viewModel.listEngine.updateSearchQuery(query)
+                },
+                placeholder = "Search products by name..."
+            )
+
+            FilterSortBar(
+                activeSorts = activeSorts,
+                filterGroups = filterGroups,
+                onFilterOptionToggled = viewModel.listEngine::onFilterOptionToggled,
+                onToggleSort = viewModel.listEngine::toggleSort,
+                availableSorts = viewModel.availableSorts
+            )
+
+            if (products.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Inbox,
+                            contentDescription = "No products found",
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No products found.",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Try changing your filters or add a new product by tapping the '+' button.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    items(products) { product ->
+                        ProductItem(
+                            productWithMultipliers = product,
+                            viewModel = viewModel,
+                            onNavigateToDetails = onNavigateToDetails
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
             }
         }
     }
@@ -147,96 +154,44 @@ fun InventoryScreen(
 fun ProductItem(
     productWithMultipliers: ProductWithMultipliers,
     viewModel: InventoryViewModel,
-    onNavigateToDetails: (productId: Long) -> Unit) {
-    var (product, multipliers) = productWithMultipliers
-    var showDialog by remember { mutableStateOf(false) }
-    var pendingDifference by remember {mutableStateOf(0f)}
-    var inputText by remember {mutableStateOf(product.currentStock.toString())}
-    var selectedMultiplier by remember {mutableStateOf(multipliers.firstOrNull())}
+    onNavigateToDetails: (productId: Long) -> Unit
+) {
+    val (product, multipliers) = productWithMultipliers
 
-    LaunchedEffect(product.currentStock) {
-        inputText = product.currentStock.toString()
-    }
+    var pendingDifference by remember { mutableStateOf(0f) }
+    var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
+    var showDialog by remember {mutableStateOf(false)}
 
     LaunchedEffect(multipliers) {
-        selectedMultiplier = multipliers.find {it.id == selectedMultiplier?.id} ?: multipliers.firstOrNull()
+        selectedMultiplier =
+            multipliers.find { it.id == selectedMultiplier?.id } ?: multipliers.firstOrNull()
     }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {onNavigateToDetails(product.id)},
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    InventoryScreenProductItem(
+        productWithMultipliers,
+        onNavigateToDetails
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ImgDisplay(
-                        fileName = product.imageUrl,
-                        currentImageDescription = "Image of ${product.name}",
-                        noImageNotification = "No image available for ${product.name}",
-                        imgDisplayGuidelines = ProductImgDisplayGuidelines.InventoryItem
-                    )
-                }
+        Spacer(modifier = Modifier.height(8.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = product.name, style = MaterialTheme.typography.titleLarge)
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    val isLowStock = product.currentStock < product.targetStock
-                    Row {
-                        Text(
-                            text = "Stock: ${product.currentStock}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = " / ${product.targetStock} ${product.unit}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Text(text = "Goal: ${product.targetStock} ${product.unit}")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            selectedMultiplier?.let { safeMultiplier ->
-                StockAdjustmentControls(
-                    multipliers = multipliers,
-                    currentMultiplier = safeMultiplier,
-                    onMultiplierSelected = { multiplier ->
-                        selectedMultiplier = multiplier
-                    },
-                    onMinusClick = {
-                        pendingDifference = -safeMultiplier.value
-                        showDialog = true
-                    },
-                    onPlusClick = {
-                        pendingDifference = safeMultiplier.value
-                        showDialog = true
-                    },
-                    productUnit = product.unit
-                )
-            } ?: run {
-                ProductNoMultipliersConfiguredMessage()
-            }
+        selectedMultiplier?.let { safeMultiplier ->
+            StockAdjustmentControls(
+                multipliers = multipliers,
+                currentMultiplier = safeMultiplier,
+                onMultiplierSelected = { multiplier ->
+                    selectedMultiplier = multiplier
+                },
+                onMinusClick = {
+                    pendingDifference = -safeMultiplier.value
+                    showDialog = true
+                },
+                onPlusClick = {
+                    pendingDifference = safeMultiplier.value
+                    showDialog = true
+                },
+                productUnit = product.unit
+            )
+        } ?: run {
+            ProductNoMultipliersConfiguredMessage()
         }
     }
 
@@ -244,7 +199,6 @@ fun ProductItem(
         SelectStockAdjustmentReasonDialog(
             onDismiss = {
                 showDialog = false
-                inputText = product.currentStock.toString()
             },
             onReasonSelected = { reason ->
                 viewModel.changeStock(product, pendingDifference, reason)

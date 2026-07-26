@@ -14,5 +14,8 @@ data class Product(
     val imageUrl: String? = null,
 
     val targetDays: Int? = null,
-    val dailyConsumptionRate: Float? = null
-)
+    val dailyConsumptionRate: Float? = null,
+) {
+    val stockPercentage: Float
+        get() = if (targetStock > 0) (currentStock / targetStock) * 100 else 100f
+}
