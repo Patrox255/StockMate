@@ -1,13 +1,14 @@
 package com.example.stockmate.data.prediction.LinearRegression
 
+import com.example.stockmate.data.prediction.ConsumptionTrainer
 import com.example.stockmate.data.prediction.DatasetConverter
 import com.example.stockmate.data.prediction.math.DataFrame
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LinearRegressionTrainer @Inject constructor() {
-    fun train(df: DataFrame): LinearRegressionModel {
+class LinearRegressionTrainer @Inject constructor() : ConsumptionTrainer {
+    override suspend fun train(df: DataFrame): LinearRegressionModel {
         val x = df.column(DatasetConverter.DAYS_COLUMN).values
         val y = df.column(DatasetConverter.CONSUMED_COLUMN).values
         val meanX = x.average()

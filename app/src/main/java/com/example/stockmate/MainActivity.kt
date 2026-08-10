@@ -43,68 +43,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "inventory") {
-                        composable("inventory") {
-                            val viewModel: InventoryViewModel = hiltViewModel()
-
-                            InventoryScreen(
-                                viewModel = viewModel,
-                                onNavigateToDetails = {productId ->
-                                    navController.navigate("details/${productId}")
-                                },
-                                onNavigateToAddProduct = {
-                                    navController.navigate("add-product")
-                                }
-                            )
-                        }
-
-                        composable(
-                            route = "details/{productId}",
-                            arguments = listOf(navArgument("productId") {type = NavType.LongType})
-                        ) { backStackEntry ->
-                            val viewModel: ProductDetailsViewModel = hiltViewModel()
-                            val productId = backStackEntry.arguments!!.getLong("productId")
-
-                            ProductDetailsScreen(
-                                viewModel = viewModel,
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                },
-                                onNavigateToEdit = {
-                                    navController.navigate("edit-product/${productId}")
-                                }
-                            )
-                        }
-
-                        composable(
-                            route = "add-product"
-                        ) {
-                           val viewModel : ProductFormViewModel = hiltViewModel()
-
-                            ProductFormScreen(
-                                viewModel = viewModel,
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                }
-                            )
-                        }
-
-                        composable (
-                            route = "edit-product/{productId}",
-                            arguments = listOf(navArgument("productId") {type = NavType.LongType})
-                        ) {
-                            val viewModel : ProductFormViewModel = hiltViewModel()
-
-                            ProductFormScreen(
-                                viewModel = viewModel,
-                                onNavigateBack = {
-                                    navController.popBackStack()
-                                }
-                            )
-                        }
-
-                    }
+                    StockMateNavigation()
                 }
             }
         }

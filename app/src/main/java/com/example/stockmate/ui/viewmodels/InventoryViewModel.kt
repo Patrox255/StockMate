@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.dtos.ProductUiModel
 import com.example.stockmate.data.dtos.toUiModel
 import com.example.stockmate.data.entity.ChangeReason
-import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.prediction.ConsumptionPredictionEngine
+import com.example.stockmate.data.prediction.SettingsRepository
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.util.product.ProductStockManager
 import com.example.stockmate.data.util.search.FilterGroup
@@ -16,19 +16,16 @@ import com.example.stockmate.data.util.search.SingleSelectFilterGroup
 import com.example.stockmate.data.util.search.SortOption
 import com.example.stockmate.ui.state.prediction.PredictionUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import java.util.Comparator.nullsLast
 import javax.inject.Inject
-import kotlin.comparisons.compareBy
-import kotlin.comparisons.nullsLast
-import kotlin.comparisons.reverseOrder
 
 @HiltViewModel
 class InventoryViewModel @Inject constructor (
     private val productRepository: ProductRepository,
     private val predictionEngine: ConsumptionPredictionEngine,
-    val productStockManager: ProductStockManager
+    val productStockManager: ProductStockManager,
+    val settingsRepository: SettingsRepository
 ): ViewModel() {
     companion object {
         const val DEBOUNCE_DELAY_SECONDS = 0.3
@@ -98,21 +95,23 @@ class InventoryViewModel @Inject constructor (
         debounceDelaySeconds = DEBOUNCE_DELAY_SECONDS
     )
 
-    val productsSourceFlow = productRepository.getAllProductsWithMultipliersFlow()
-        .map {products ->
-            products.map { productWithMultipliers ->
-                productWithMultipliers.toUiModel(predictionEngine)
-            }
+    val productsSourceFlow = combine(
+        productRepository.getAllProductsWithMultipliersFlow(),
+        settingsRepository.settings
+    ) { products, currentSettings ->
+        products.map { productWithMultipliers ->
+            productWithMultipliers.toUiModel(predictionEngine)
         }
+    }
 
     val displayedProducts = listEngine.process(
         sourceFlow = productsSourceFlow,
         scope = viewModelScope
     )
 
-    fun onReasonSelected(product: Product, reason: ChangeReason) {
+    fun onReasonSelected(reason: ChangeReason) {
         viewModelScope.launch {
-            productStockManager.StockAdjustmentDialogOnReasonSelected(product, reason)
+            productStockManager.StockAdjustmentDialogOnReasonSelected(reason)
         }
     }
 }

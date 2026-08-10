@@ -23,7 +23,8 @@ data class StockLog(
     // In milliseconds
     val timestamp: Long,
     val amountChanged: Float,
-    val changeReason: ChangeReason
+    val changeReason: ChangeReason,
+    val stockBefore: Float
 )
 
 enum class ChangeReason(val displayName: String) {

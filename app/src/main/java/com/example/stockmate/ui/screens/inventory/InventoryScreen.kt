@@ -51,6 +51,7 @@ fun InventoryScreen(
     val activeSorts by viewModel.listEngine.activeSorts.collectAsState()
     val filterGroups by viewModel.listEngine.filterGroups.collectAsState()
     val searchQuery by viewModel.listEngine.searchQuery.collectAsState()
+    val showDialog by viewModel.productStockManager.showDialog.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -64,7 +65,7 @@ fun InventoryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             SearchBar(
                 query = searchQuery,
@@ -134,6 +135,16 @@ fun InventoryScreen(
             }
         }
     }
+
+
+    if (showDialog) {
+        SelectStockAdjustmentReasonDialog(
+            onDismiss = viewModel.productStockManager::StockAdjustmentDialogOnDismiss,
+            onReasonSelected = {reason ->
+                viewModel.onReasonSelected(reason)
+            }
+        )
+    }
 }
 
 @Composable
@@ -144,7 +155,6 @@ fun ProductItem(
 ) {
     val productWithMultipliers = productUiModel.productWithMultipliers
     val (product, multipliers) = productWithMultipliers
-    val showDialog = viewModel.productStockManager.showDialog.collectAsState().value
 
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
 
@@ -167,10 +177,10 @@ fun ProductItem(
                     selectedMultiplier = multiplier
                 },
                 onMinusClick = {
-                    viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(selectedMultiplier)
+                    viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(product, selectedMultiplier)
                 },
                 onPlusClick = {
-                    viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(selectedMultiplier)
+                    viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(product, selectedMultiplier)
                 },
                 productUnit = product.unit
             )
@@ -181,15 +191,6 @@ fun ProductItem(
         Spacer(modifier = Modifier.height(6.dp))
         ProductPredictionBadge(
             predictionState = productUiModel.predictionState
-        )
-    }
-
-    if (showDialog) {
-        SelectStockAdjustmentReasonDialog(
-            onDismiss = viewModel.productStockManager::StockAdjustmentDialogOnDismiss,
-            onReasonSelected = {reason ->
-                viewModel.onReasonSelected(product, reason)
-            }
         )
     }
 }

@@ -2,11 +2,16 @@ package com.example.stockmate.data.prediction
 
 import com.example.stockmate.data.dao.ProductDao
 import com.example.stockmate.data.dao.StockLogDao
+import com.example.stockmate.data.entity.ChangeReason
+import kotlinx.coroutines.flow.first
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 data class PredictionCacheKey(
     val productId: Long,
@@ -22,7 +27,7 @@ class ConsumptionPredictionEngine @Inject constructor(
     private val productDao: ProductDao,
     private val datasetBuilder: DatasetBuilder,
     private val predictorFactory: PredictorFactory,
-    private val predictionSettings: PredictionSettings
+    private val appSettingsRepository: SettingsRepository,
 ) {
     private val predictionCache = ConcurrentHashMap<PredictionCacheKey, PredictionCacheValue>()
 
@@ -31,7 +36,8 @@ class ConsumptionPredictionEngine @Inject constructor(
         val samples = datasetBuilder.buildDatasetBasedOnSingleProductLogs(logs)
         if (samples.size < 2) return null
 
-        val predictor = predictorFactory.create(predictionSettings.currentModel)
+        val currentModel = appSettingsRepository.settings.first().predictionSelectedModel
+        val predictor = predictorFactory.create(currentModel)
         predictor.train(samples)
         predictionCache[PredictionCacheKey(productId)] = PredictionCacheValue(
             predictor = predictor,
@@ -51,9 +57,47 @@ class ConsumptionPredictionEngine @Inject constructor(
 
         val firstLogDate = logs.getFirstLogDate() ?: return null
         val today = LocalDate.now()
-        val nextDayIndex = ChronoUnit.DAYS.between(firstLogDate, today).toDouble() + 1.0
+        val tomorrow = today.plusDays(1)
+        val nextDayIndex = ChronoUnit.DAYS.between(firstLogDate, tomorrow).toDouble()
+        val tomorrowDayOfWeek = tomorrow.dayOfWeek.value.toDouble()
 
-        var predictedConsumption = predictor.predict(nextDayIndex)
+        val consumedLogs = logs.filter { it.changeReason == ChangeReason.CONSUMED }
+        val last7DaysLogs = consumedLogs.filter {
+            it.timestamp >= System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
+        }
+        val avg7d = if (last7DaysLogs.isNotEmpty()) {
+            last7DaysLogs.sumOf { abs(it.amountChanged.toDouble()) } / 7.0
+        } else {
+            0.0
+        }
+        val last14DaysLogs = consumedLogs.filter {
+            it.timestamp >= System.currentTimeMillis() - (14 * 24 * 60 * 60 * 1000)
+        }
+        val avg14d = if (last14DaysLogs.isNotEmpty()) {
+            last14DaysLogs.sumOf { abs(it.amountChanged.toDouble()) } / 14.0
+        } else {
+            0.0
+         }
+        val lastChangeLog = logs.maxByOrNull { it.timestamp }
+        val daysSinceLastChange = if (lastChangeLog != null) {
+            val changeDate = Instant.ofEpochMilli(lastChangeLog.timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+            ChronoUnit.DAYS.between(changeDate, today).toDouble()
+        } else {
+            0.0
+        }
+
+        val consumptionFeatures = ConsumptionFeatures(
+            day = nextDayIndex,
+            dayOfWeek = tomorrowDayOfWeek,
+            stockAtDayStart = product.currentStock.toDouble(),
+            previousConsumption =
+                consumedLogs.maxByOrNull { it.timestamp }?.amountChanged ?.let { abs(it.toDouble()) } ?: 0.0,
+            averageConsumption7d = avg7d,
+            averageConsumption14d = avg14d,
+            daysSinceLastChange = daysSinceLastChange
+        )
+
+        var predictedConsumption = predictor.predict(consumptionFeatures)
         if (predictedConsumption < 0.0) {
             predictedConsumption = 0.0
         }

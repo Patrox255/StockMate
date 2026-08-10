@@ -64,9 +64,9 @@ class ProductDetailsViewModel @Inject constructor(
         }
     }
 
-    fun onReasonSelected(product: Product, reason: ChangeReason) {
+    fun onReasonSelected(reason: ChangeReason) {
         viewModelScope.launch {
-            productStockManager.StockAdjustmentDialogOnReasonSelected(product, reason)
+            productStockManager.StockAdjustmentDialogOnReasonSelected(reason)
         }
     }
 }

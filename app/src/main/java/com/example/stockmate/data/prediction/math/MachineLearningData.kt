@@ -30,7 +30,7 @@ data class Vector(
 }
 
 class DataFrame(
-    private val columns: Map<String, Vector>
+    val columns: Map<String, Vector>
 ) {
     fun column(name: String): Vector {
         return columns[name]

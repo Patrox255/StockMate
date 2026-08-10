@@ -18,32 +18,40 @@ class ProductStockManager @Inject constructor(
 ) {
     private val _showDialog: MutableStateFlow<Boolean> = MutableStateFlow(false)
     private val _pendingDifference: MutableStateFlow<Float> = MutableStateFlow(0f)
+    private val _pendingProduct = MutableStateFlow<Product?>(null)
 
     val showDialog = _showDialog.asStateFlow()
     val pendingDifference: StateFlow<Float> = _pendingDifference.asStateFlow()
 
-    fun StockAdjustmentControlsOnPlusClick(selectedMultiplier: ProductMultiplier?) {
+    fun StockAdjustmentControlsOnPlusClick(product: Product, selectedMultiplier: ProductMultiplier?) {
+        _pendingProduct.value = product
         _pendingDifference.value = selectedMultiplier?.value ?: 0f
         _showDialog.value = true
     }
 
-    fun StockAdjustmentControlsOnMinusClick(selectedMultiplier: ProductMultiplier?) {
+    fun StockAdjustmentControlsOnMinusClick(product: Product, selectedMultiplier: ProductMultiplier?) {
+        _pendingProduct.value = product
         _pendingDifference.value = -(selectedMultiplier?.value ?: 0f)
         _showDialog.value = true
     }
 
     suspend fun changeStock(product: Product, amount: Float, reason: ChangeReason) {
-        repository.changeStock(product, amount, reason)
         predictionEngine.clearCacheForProduct(product.id)
+        repository.changeStock(product, amount, reason)
     }
 
-    suspend fun StockAdjustmentDialogOnReasonSelected(product: Product, reason: ChangeReason) {
-        changeStock(product, _pendingDifference.value, reason)
+    suspend fun StockAdjustmentDialogOnReasonSelected(reason: ChangeReason) {
+        val product = _pendingProduct.value
+        if (product != null) {
+            changeStock(product, _pendingDifference.value, reason)
+        }
         _showDialog.value = false
+        _pendingProduct.value = null
     }
 
     fun StockAdjustmentDialogOnDismiss() {
         _showDialog.value = false
+        _pendingProduct.value = null
     }
 
     fun showDialogUpdate(value: Boolean) {

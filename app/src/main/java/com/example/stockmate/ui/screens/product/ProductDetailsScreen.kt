@@ -40,7 +40,9 @@ import kotlin.math.roundToInt
 fun ProductDetailsScreen(
     viewModel: ProductDetailsViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToEdit: () -> Unit
+    onNavigateToEdit: () -> Unit,
+    onTitleUpdate: (String?) -> Unit,
+    onActionsUpdate: ((@Composable RowScope.() -> Unit)?) -> Unit,
 ) {
     val productDetailsState by viewModel.productDetails.collectAsState()
     val details = productDetailsState
@@ -68,7 +70,21 @@ fun ProductDetailsScreen(
         )
     }
 
-    Scaffold(
+    LaunchedEffect(productDetailsState) {
+        productDetailsState?.product?.name?.let { productName ->
+            onTitleUpdate(productName)
+        }
+        onActionsUpdate({
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(Icons.Default.Delete, contentDescription = null)
+            }
+            IconButton(onClick = onNavigateToEdit) {
+                Icon(Icons.Default.Edit, contentDescription = null)
+            }
+        })
+    }
+
+    Box(
         // In order to make it so that when a user clicks outside the Text Field then it counts as
         // lose of the focus
         modifier = Modifier
@@ -78,26 +94,9 @@ fun ProductDetailsScreen(
                     focusManager.clearFocus()
                 })
             },
-        topBar = {
-            TopAppBar(
-                title = { Text(details.product.name) },
-                navigationIcon = {
-                    NavigateBack(onNavigateBack = onNavigateBack)
-                },
-                actions = {
-                    IconButton(onClick = {showDeleteDialog = true}) {
-                        Icon(Icons.Default.Delete, contentDescription = null)
-                    }
-                    IconButton(onClick = onNavigateToEdit) {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    ) {
         ProductDetailsContent(
             productWithMultipliers = details,
-            modifier = Modifier.padding(paddingValues),
             viewModel = viewModel
         )
     }
@@ -206,10 +205,10 @@ fun ProductDetailsContent(
                             currentMultiplier = selectedMultiplier!!,
                             onMultiplierSelected = { multiplier -> selectedMultiplier = multiplier },
                             onMinusClick = {
-                                viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(selectedMultiplier)
+                                viewModel.productStockManager.StockAdjustmentControlsOnMinusClick(product, selectedMultiplier)
                             },
                             onPlusClick = {
-                                viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(selectedMultiplier)
+                                viewModel.productStockManager.StockAdjustmentControlsOnPlusClick(product, selectedMultiplier)
                             },
                             productUnit = product.unit
                         )
@@ -298,7 +297,7 @@ fun ProductDetailsContent(
                 sliderPosition = product.currentStock
             },
             onReasonSelected = {reason ->
-                viewModel.onReasonSelected(product, reason)
+                viewModel.onReasonSelected(reason)
             }
         )
     }

@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.camera.camera2.pipe.media.ImageSource
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -114,26 +115,15 @@ fun ProductFormScreen(
         )
     }
 
-    Scaffold(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { focusManager.clearFocus() })
             },
-        topBar = {
-            TopAppBar(
-                title = { Text(screenTitle) },
-                navigationIcon = {
-                    NavigateBack(onNavigateBack = {
-                        handleNavigateBack()
-                    })
-                }
-            )
-        }
-    ) { paddingValues ->
+    ) {
         Column(
             modifier = Modifier
-                .padding(paddingValues)
                 .fillMaxWidth()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
@@ -152,16 +142,6 @@ fun ProductFormScreen(
                 )
             )
 
-//            ImgPreviewAmongDifferentStyles(
-//                absoluteImgPath = formState.imagePath,
-//                fileName = null,
-//                nameToStyleMap = mapOf(
-//                    "Inventory item" to com.example.stockmate.data.util.img.ProductImgDisplayGuidelines.InventoryItem,
-//                    "Product details" to com.example.stockmate.data.util.img.ProductImgDisplayGuidelines.ProductDetails,
-//                ),
-//                currentImageDescription = "Current product image",
-//                noImageDescription = "No image selected"
-//            )
             TabbedComponent(
                 entries = listOf(
                     TabbedComponentEntry(

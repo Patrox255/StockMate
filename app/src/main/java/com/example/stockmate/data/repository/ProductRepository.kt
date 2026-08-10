@@ -73,7 +73,8 @@ class ProductRepository @Inject constructor(
             productId = product.id,
             timestamp = System.currentTimeMillis(),
             amountChanged = amount,
-            changeReason = reason
+            changeReason = reason,
+            stockBefore = product.currentStock
         )
         stockLogDao.insertLog(log)
     }
@@ -222,86 +223,89 @@ class ProductRepository @Inject constructor(
             val now = System.currentTimeMillis()
             val dayMs = 24 * 60 * 60 * 1000L
 
-            // Simple milk scenario which was consumed over 7 days one glass per day
-            for (daysAgo in 7 downTo 1) {
+            var curStock = 0.0f
+            fun addStockLog(productId: Long, daysAgo: Int, amountChanged: Float, changeReason: ChangeReason) {
+                curStock += amountChanged
                 sampleLogs.add(
                     StockLog(
-                        productId = 1,
+                        productId = productId,
                         timestamp = now - daysAgo * dayMs,
-                        amountChanged = -0.25f,
-                        changeReason = ChangeReason.CONSUMED
+                        amountChanged = amountChanged,
+                        changeReason = changeReason,
+                        stockBefore = curStock - amountChanged
                     )
                 )
             }
-            sampleLogs.add(
-                StockLog(
-                    productId = 1,
-                    timestamp = now - 8 * dayMs,
-                    amountChanged = 2.0f,
-                    changeReason = ChangeReason.RESTOCKED
-                )
+
+            // Simple milk scenario which was consumed over 7 days one glass per day
+            addStockLog(
+                productId = 1,
+                daysAgo = 8,
+                amountChanged = 2.0f,
+                changeReason = ChangeReason.RESTOCKED
             )
+            for (daysAgo in 7 downTo 1) {
+                addStockLog(
+                    productId = 1,
+                    daysAgo = daysAgo,
+                    amountChanged = -0.25f,
+                    changeReason = ChangeReason.CONSUMED
+                )
+            }
 
             // Eggs scenario where 3 eggs were consumed every second day and nothing was consumed on the other days
+            curStock = 0.0f
+            addStockLog(
+                productId = 3,
+                daysAgo = 8,
+                amountChanged = 12.0f,
+                changeReason = ChangeReason.RESTOCKED
+            )
             for (daysAgo in 6 downTo 1 step 2) {
-                sampleLogs.add(
-                    StockLog(
-                        productId = 3,
-                        timestamp = now - daysAgo * dayMs,
-                        amountChanged = -3.0f,
-                        changeReason = ChangeReason.CONSUMED
-                    )
+                addStockLog(
+                    productId = 3,
+                    daysAgo = daysAgo,
+                    amountChanged = -3.0f,
+                    changeReason = ChangeReason.CONSUMED
                 )
             }
-            sampleLogs.add(
-                StockLog(
-                    productId = 3,
-                    timestamp = now - 8 * dayMs,
-                    amountChanged = 12.0f,
-                    changeReason = ChangeReason.RESTOCKED
-                )
-            )
 
             // Coffee scenario with increasing consumption over 5 days
-            sampleLogs.add(
-                StockLog(
-                    productId = 8,
-                    timestamp = now - (5 * dayMs),
-                    amountChanged = -15f,
-                    changeReason = ChangeReason.CONSUMED
+            addStockLog(
+                productId = 8,
+                daysAgo = 6,
+                amountChanged = 250f,
+                changeReason = ChangeReason.RESTOCKED,
                 )
+            addStockLog(
+                productId = 8,
+                daysAgo = 5,
+                amountChanged = -15f,
+                changeReason = ChangeReason.CONSUMED
             )
-            sampleLogs.add(
-                StockLog(
-                    productId = 8,
-                    timestamp = now - (4 * dayMs),
-                    amountChanged = -15f,
-                    changeReason = ChangeReason.CONSUMED
-                )
+            addStockLog(
+                productId = 8,
+                daysAgo = 4,
+                amountChanged = -15f,
+                changeReason = ChangeReason.CONSUMED
             )
-            sampleLogs.add(
-                StockLog(
-                    productId = 8,
-                    timestamp = now - (3 * dayMs),
-                    amountChanged = -30f,
-                    changeReason = ChangeReason.CONSUMED
-                )
+            addStockLog(
+                productId = 8,
+                daysAgo = 3,
+                amountChanged = -30f,
+                changeReason = ChangeReason.CONSUMED
             )
-            sampleLogs.add(
-                StockLog(
-                    productId = 8,
-                    timestamp = now - (2 * dayMs),
-                    amountChanged = -30f,
-                    changeReason = ChangeReason.CONSUMED
-                )
+            addStockLog(
+                productId = 8,
+                daysAgo = 2,
+                amountChanged = -30f,
+                changeReason = ChangeReason.CONSUMED
             )
-            sampleLogs.add(
-                StockLog(
-                    productId = 8,
-                    timestamp = now - (1 * dayMs),
-                    amountChanged = -45f,
-                    changeReason = ChangeReason.CONSUMED
-                )
+            addStockLog(
+                productId = 8,
+                daysAgo = 1,
+                amountChanged = -45f,
+                changeReason = ChangeReason.CONSUMED
             )
 
             sampleLogs.forEach { stockLogDao.insertLog(it) }
