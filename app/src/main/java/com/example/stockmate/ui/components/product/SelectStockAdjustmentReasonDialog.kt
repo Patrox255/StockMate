@@ -12,8 +12,14 @@ import com.example.stockmate.data.entity.ChangeReason
 @Composable
 fun SelectStockAdjustmentReasonDialog(
     onDismiss: () -> Unit,
-    onReasonSelected: (ChangeReason) -> Unit
+    onReasonSelected: (ChangeReason) -> Unit,
+    pendingDifference: Float
 ) {
+    val reasons: List<ChangeReason> = if (pendingDifference > 0) {
+        ChangeReason.INCREASING_REASONS
+    } else {
+        ChangeReason.DECREASING_REASONS
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -21,7 +27,7 @@ fun SelectStockAdjustmentReasonDialog(
         },
         text = {
             Column {
-                ChangeReason.entries.forEach { reason ->
+                reasons.forEach { reason ->
                     TextButton(
                         onClick = {
                             onReasonSelected(reason)

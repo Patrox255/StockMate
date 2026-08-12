@@ -52,6 +52,7 @@ fun InventoryScreen(
     val filterGroups by viewModel.listEngine.filterGroups.collectAsState()
     val searchQuery by viewModel.listEngine.searchQuery.collectAsState()
     val showDialog by viewModel.productStockManager.showDialog.collectAsState()
+    val pendingDifference by viewModel.productStockManager.pendingDifference.collectAsState()
 
     Scaffold(
         floatingActionButton = {
@@ -142,7 +143,8 @@ fun InventoryScreen(
             onDismiss = viewModel.productStockManager::StockAdjustmentDialogOnDismiss,
             onReasonSelected = {reason ->
                 viewModel.onReasonSelected(reason)
-            }
+            },
+            pendingDifference = pendingDifference
         )
     }
 }

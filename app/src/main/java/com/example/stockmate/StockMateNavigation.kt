@@ -3,6 +3,7 @@ package com.example.stockmate
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.stockmate.ui.components.layout.MainAppLayout
+import com.example.stockmate.ui.screens.chart.StockLogHistoryScreen
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
@@ -32,6 +34,7 @@ import com.example.stockmate.ui.viewmodels.InventoryViewModel
 import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import com.example.stockmate.ui.viewmodels.SettingsViewModel
+import com.example.stockmate.ui.viewmodels.chart.StockLogChartViewModel
 
 object Destinations {
     const val INVENTORY = "inventory"
@@ -39,6 +42,18 @@ object Destinations {
     const val ADD_PRODUCT = "add-product"
     const val EDIT_PRODUCT = "edit-product/{productId}"
     const val SETTINGS = "settings"
+    const val STOCK_LOG_CHART = "stock-log-chart"
+}
+
+fun destinationToHeader(destination: String?): String {
+    return when (destination) {
+        Destinations.SETTINGS -> "App Settings"
+        Destinations.ADD_PRODUCT -> "Add Product"
+        Destinations.EDIT_PRODUCT -> "Edit Product"
+        Destinations.PRODUCT_DETAILS -> "Product Details"
+        Destinations.STOCK_LOG_CHART -> "Stock Log History"
+        else -> "StockMate"
+    }
 }
 
 @Composable
@@ -69,6 +84,9 @@ fun StockMateNavigation() {
         dynamicActions = when (currentRoute) {
             Destinations.INVENTORY -> {
                 {
+                    IconButton(onClick = { navController.navigate(Destinations.STOCK_LOG_CHART) }) {
+                        Icon(Icons.Default.BarChart, contentDescription = "Analytics")
+                    }
                     IconButton(onClick = {
                         navController.navigate(Destinations.SETTINGS)
                     }) {
@@ -175,6 +193,15 @@ fun StockMateNavigation() {
                     )
                 }
 
+                composable(
+                    route = Destinations.STOCK_LOG_CHART
+                ) {
+                    val viewModel: StockLogChartViewModel = hiltViewModel()
+
+                    StockLogHistoryScreen(
+                        viewModel = viewModel
+                    )
+                }
             }
         }
     )

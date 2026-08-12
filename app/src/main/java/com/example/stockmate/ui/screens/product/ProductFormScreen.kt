@@ -63,7 +63,6 @@ fun ProductFormScreen(
     val error by viewModel.error.collectAsState()
     val multipliers by viewModel.multipliersManager.multipliers.collectAsState()
     val isLoadingExistingData by viewModel.isLoadingExistingData.collectAsState()
-    val screenTitle = if (viewModel.isEditMode) "Edit Product" else "Add Product"
     val buttonText = if (viewModel.isEditMode) "Update Product" else "Save Product"
 
     val context = LocalContext.current

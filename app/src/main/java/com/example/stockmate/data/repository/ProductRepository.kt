@@ -36,6 +36,9 @@ class ProductRepository @Inject constructor(
                 product?.withSortedMultipliers()
             }
 
+    suspend fun getProductsByIds(ids: List<Long>): List<Product> =
+        productDao.getProductsByIds(ids)
+
     suspend fun getProductWithMultipliersById(id: Long): ProductWithMultipliers? =
         productDao.getProductWithMultipliers(id)?.withSortedMultipliers()
 

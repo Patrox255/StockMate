@@ -22,4 +22,10 @@ interface StockLogDao {
 
     @Query("DELETE FROM stock_logs WHERE productId IN (:productIds)")
     suspend fun deleteLogsForProductIds(productIds: List<Long>)
+
+    @Query("SELECT * FROM stock_logs WHERE timestamp >= :timestamp ORDER BY timestamp DESC")
+    suspend fun getLogsSince(timestamp: Long): List<StockLog>
+
+    @Query("SELECT * FROM stock_logs WHERE timestamp >= :timestamp ORDER BY timestamp DESC")
+    fun getLogsSinceFlow(timestamp: Long): Flow<List<StockLog>>
 }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.Destinations
+import com.example.stockmate.destinationToHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,13 +37,7 @@ fun MainAppLayout(
                 title = {
                     Text(
                         text = dynamicTitle
-                            ?: when (currentRoute) {
-                                Destinations.SETTINGS -> "App Settings"
-                                Destinations.ADD_PRODUCT -> "Add Product"
-                                Destinations.EDIT_PRODUCT -> "Edit Product"
-                                Destinations.PRODUCT_DETAILS -> "Product Details"
-                                else -> "StockMate"
-                            }
+                            ?: destinationToHeader(currentRoute),
                     )
                 },
                 navigationIcon = {

@@ -1,5 +1,6 @@
 package com.example.stockmate.ui.screens.product
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -22,17 +23,21 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.example.stockmate.data.chart.StockChartManagerSettings
+import com.example.stockmate.data.chart.StockChartProductsFilterMode
 import com.example.stockmate.data.entity.ProductWithMultipliers
 import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.LoadingIndicator
+import com.example.stockmate.ui.components.chart.StockLogHistoryChart
 import com.example.stockmate.ui.components.form.DeleteConfirmationDialog
 import com.example.stockmate.ui.components.img.ImgDisplay
-import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.ProductPredictionCard
 import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDialog
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
 import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
+import com.example.stockmate.ui.viewmodels.chart.StockLogChartViewModel
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -174,6 +179,8 @@ fun ProductDetailsContent(
 ) {
     val (product, multipliers) = productWithMultipliers
     val focusManager = LocalFocusManager.current
+    val productLogsChartViewModel: StockLogChartViewModel = hiltViewModel()
+    val chartSeriesAdditionalRenderInfo by productLogsChartViewModel.chartSeriesAdditionalRenderInfo.collectAsState()
 
     var inputText by remember { mutableStateOf(product.currentStock.toString()) }
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
@@ -181,9 +188,18 @@ fun ProductDetailsContent(
     var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
     val showDialog by viewModel.productStockManager.showDialog.collectAsState()
     val predictionState by viewModel.predictionState.collectAsState()
+    val pendingDifference by viewModel.productStockManager.pendingDifference.collectAsState()
 
     LaunchedEffect(product.currentStock) {
         inputText = product.currentStock.toString()
+    }
+
+    LaunchedEffect(productWithMultipliers.product.id) {
+        Log.d("ProductDetailsContent", "Setting chart settings for product ID: ${productWithMultipliers.product.id}")
+        productLogsChartViewModel.setChartSettings(StockChartManagerSettings(
+            includedOrExcludedProductsIds = listOf(productWithMultipliers.product.id),
+            filterMode = StockChartProductsFilterMode.INCLUDE
+        ))
     }
 
     ProductDetailsTopContent(
@@ -286,6 +302,17 @@ fun ProductDetailsContent(
                 predictionState = predictionState,
                 modifier = Modifier.padding(16.dp)
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Stock History", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                StockLogHistoryChart(
+                    modelProducer = productLogsChartViewModel.modelProducer,
+                    chartSeriesAdditionalRenderInfo = chartSeriesAdditionalRenderInfo
+                )
+            }
         }
     )
 
@@ -298,7 +325,8 @@ fun ProductDetailsContent(
             },
             onReasonSelected = {reason ->
                 viewModel.onReasonSelected(reason)
-            }
+            },
+            pendingDifference = pendingDifference
         )
     }
 }

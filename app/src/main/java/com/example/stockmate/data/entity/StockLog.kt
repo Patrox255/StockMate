@@ -31,5 +31,17 @@ enum class ChangeReason(val displayName: String) {
     RESTOCKED("Restocked"),
     CONSUMED("Consumed"),
     WASTED("Wasted"),
-    ADJUSTED("Adjusted")
+    ADJUSTED("Adjusted");
+
+    companion object {
+        val INCREASING_REASONS = listOf(
+            RESTOCKED,
+            ADJUSTED
+        )
+        val DECREASING_REASONS = listOf(
+            CONSUMED,
+            WASTED,
+            ADJUSTED
+        )
+    }
 }
