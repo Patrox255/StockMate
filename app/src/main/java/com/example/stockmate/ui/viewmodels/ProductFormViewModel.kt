@@ -1,20 +1,21 @@
 package com.example.stockmate.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.dtos.AddProductFormState
-import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.mappers.toMultipliers
 import com.example.stockmate.data.mappers.toProduct
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.util.FormImageTracker
 import com.example.stockmate.data.util.img.ImageStorage
 import com.example.stockmate.data.validationUtil.FormValidationUtil
 import com.example.stockmate.data.validationUtil.FormValidator
+import com.example.stockmate.data.validationUtil.ValidatableItem
 import com.example.stockmate.data.validationUtil.ValidatorGeneratorData
-import com.example.stockmate.ui.viewmodels.productMultiplier.MultipliersFormManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +43,11 @@ class ProductFormViewModel @Inject constructor (
         UNIT,
         TARGET_STOCK,
     }
-    private val formValidator = FormValidator(
+    enum class MultiplierFormField {
+        NAME,
+        VALUE,
+    }
+    private val productValidator = FormValidator(
         enumClass = AddProductFormField::class.java,
         validationFuns = mapOf(
             AddProductFormField.NAME to listOf(
@@ -60,6 +65,47 @@ class ProductFormViewModel @Inject constructor (
             ),
         )
     )
+    val productErrors = productValidator.errors
+    val productGlobalError = productValidator.error
+    val onNameChanged = productValidator.onFormFieldChangedGenerator(AddProductFormField.NAME,
+        {newName -> _formState.update { it.copy(name=newName) }})
+
+    val onUnitChanged = productValidator.onFormFieldChangedGenerator(AddProductFormField.UNIT,
+        {newUnit -> _formState.update { it.copy(unit=newUnit) }})
+
+    val onTargetStockChanged = productValidator.onFormFieldChangedGenerator(AddProductFormField.TARGET_STOCK,
+        {newTargetStock -> _formState.update { it.copy(targetStock=newTargetStock) }})
+
+
+    private val multiplierValidator = FormValidator(
+        enumClass = MultiplierFormField::class.java,
+        validationFuns = mapOf(
+            MultiplierFormField.NAME to listOf(
+                FormValidationUtil.stringNotBlank(ValidatorGeneratorData(
+                    customErrorMessage = "Multiplier name can't be empty!"
+                ))
+            ),
+            MultiplierFormField.VALUE to listOf(
+                FormValidationUtil.validateFloat(ValidatorGeneratorData(
+                    customErrorMessage = "Multiplier value must be a valid number!"
+                ))
+            )
+        )
+    )
+    val multiplierErrors = multiplierValidator.errors
+    fun onMultiplierFieldChanged(multiplierId: String, field: MultiplierFormField, newValue: String) {
+        _formState.update { state ->
+            val res = state.copy(multipliers = state.multipliers.map {m ->
+                if (m.localId != multiplierId) m
+                else when (field) {
+                    MultiplierFormField.NAME -> m.copy(name = newValue)
+                    MultiplierFormField.VALUE -> m.copy(value = newValue)
+                }
+            })
+            multiplierValidator.validateField(itemId = multiplierId, field = field, value = newValue)
+            res
+        }
+    }
 
     private val _formState = MutableStateFlow(AddProductFormState())
     private var initialState = AddProductFormState()
@@ -74,8 +120,6 @@ class ProductFormViewModel @Inject constructor (
     val isEditMode: Boolean = productId != null
     val isLoadingExistingData: StateFlow<Boolean> = _isLoadingExistingData.asStateFlow()
     val formState: StateFlow<AddProductFormState> = _formState.asStateFlow()
-    val errors = formValidator.errors
-    val error = formValidator.error
     val uiEvent = _uiEvent.asSharedFlow()
     val hasUnsavedChanges: Boolean
         get() = if (isEditMode && _isLoadingExistingData.value) {
@@ -83,37 +127,12 @@ class ProductFormViewModel @Inject constructor (
         } else {
             val productFormChanged = _formState.value != initialState
             val currentMultipliersComparisionData = multiplierFormStateListToComparisionData(
-                multipliersManager.multipliers.value)
+                formState.value.multipliers)
             val multipliersChanged = currentMultipliersComparisionData != initialMultipliersData
 
             productFormChanged || multipliersChanged
         }
-    val multipliersManager = MultipliersFormManager(
-        validationRules = mapOf(
-            MultiplierField.NAME to listOf(
-                FormValidationUtil.stringNotBlank(ValidatorGeneratorData(
-                    customErrorMessage = "Multiplier name can't be empty!"
-                ))
-            ),
-            MultiplierField.VALUE to listOf(
-                FormValidationUtil.validateFloat(ValidatorGeneratorData(
-                    customErrorMessage = "Multiplier value must be a valid number!"
-                ))
-            )
-        )
-    )
 
-    val onNameChanged = formValidator.onFormFieldChangedGenerator(AddProductFormField.NAME) { newName ->
-        _formState.update { it.copy(name = newName) }
-    }
-
-    val onUnitChanged = formValidator.onFormFieldChangedGenerator(AddProductFormField.UNIT) { newUnit ->
-        _formState.update { it.copy(unit = newUnit) }
-    }
-
-    val onTargetStockChanged = formValidator.onFormFieldChangedGenerator(AddProductFormField.TARGET_STOCK) { newStock ->
-        _formState.update { it.copy(targetStock = newStock) }
-    }
 
     init {
         if (isEditMode) {
@@ -132,12 +151,20 @@ class ProductFormViewModel @Inject constructor (
                     unit = productWithMultipliers.product.unit,
                     targetStock = productWithMultipliers.product.targetStock.toString(),
                     currentStock = productWithMultipliers.product.currentStock.toString(),
-                    imagePath = productWithMultipliers.product.imageUrl
+                    imagePath = productWithMultipliers.product.imageUrl,
+                    multipliers = productWithMultipliers.multipliers.map { multiplier ->
+                        MultiplierFormState(
+                            databaseId = multiplier.id,
+                            name = multiplier.name,
+                            value = multiplier.value.toString(),
+                            sortOrder = multiplier.sortOrder
+                        )
+                    }
                 )
-                multipliersManager.loadExistingMultipliers(productWithMultipliers.multipliers)
 
                 initialMultipliersData = multiplierFormStateListToComparisionData(
-                    multipliersManager.multipliers.value)
+                    _formState.value.multipliers
+                )
 
                 formImageTracker.init(productWithMultipliers.product.imageUrl)
             } else {
@@ -165,17 +192,27 @@ class ProductFormViewModel @Inject constructor (
     fun saveProduct() {
         val current = _formState.value
 
-        val isFormValid = formValidator.validateBeforeSubmit(
+        val isProductFormValid = productValidator.validateSingleForm(
             mapOf(
                 AddProductFormField.NAME to current.name,
                 AddProductFormField.TARGET_STOCK to current.targetStock,
                 AddProductFormField.UNIT to current.unit
             )
         )
-        val areMultipliersValid = multipliersManager.areAllMultipliersValid()
-        if (!isFormValid || !areMultipliersValid) {
+        val areMultipliersValid = multiplierValidator.validateItems(
+            current.multipliers.map { multiplier ->
+                ValidatableItem(
+                    id = multiplier.localId,
+                    fields = mapOf(
+                        MultiplierFormField.NAME to multiplier.name,
+                        MultiplierFormField.VALUE to multiplier.value
+                    )
+                )
+            }
+        )
+        if (!isProductFormValid || !areMultipliersValid) {
             if (!areMultipliersValid) {
-                formValidator.setGlobalError("Please fix the errors in the multipliers section.")
+                productValidator.setGlobalError("Please fix the errors in the multipliers section.")
             }
             return
         }
@@ -190,12 +227,12 @@ class ProductFormViewModel @Inject constructor (
             if (isEditMode) {
                 productRepository.updateProductWithMultipliers(
                     product = newProduct,
-                    multipliers = multipliersManager.getProductMultipliers()
+                    multipliers =  current.multipliers.toMultipliers(newProduct.id)
                 )
             } else {
                 productRepository.insertProductWithMultipliers(
                     product = newProduct,
-                    multipliers = multipliersManager.getProductMultipliers()
+                    multipliers =  current.multipliers.toMultipliers(newProduct.id)
                 )
             }
             formImageTracker.markAsSaved()
@@ -211,12 +248,49 @@ class ProductFormViewModel @Inject constructor (
             id = productId ?: 0L,
             currentStock = 0f
         )
-        val multipliers = multipliersManager.getProductMultipliers()
+        val multipliers = current.multipliers
 
         return ProductWithMultipliers(
             product = product,
-            multipliers = multipliers
+            multipliers = multipliers.toMultipliers(product.id)
         )
+    }
+
+    fun addEmptyMultiplier() {
+        _formState.update {state ->
+            val newMultiplier = MultiplierFormState()
+            state.copy(multipliers = state.multipliers + newMultiplier)
+        }
+    }
+
+    fun updateMultiplier(localId: String, name: String, value: String) {
+        _formState.update {state ->
+            val updatedMultipliers = state.multipliers.map {multiplier ->
+                if (multiplier.localId == localId)
+                    multiplier.copy(name = name, value = value)
+                else
+                    multiplier
+            }
+            state.copy(multipliers = updatedMultipliers)
+        }
+    }
+
+    fun removeMultiplier(localId: String) {
+        _formState.update {state ->
+            val updatedMultipliers = state.multipliers.filter {multiplier ->
+                multiplier.localId != localId
+            }
+            state.copy(multipliers = updatedMultipliers)
+        }
+    }
+
+    fun moveMultiplier(fromIndex: Int, toIndex: Int) {
+        _formState.update { state ->
+            val multipliers = state.multipliers.toMutableList()
+            val multiplierToMove = multipliers.removeAt(fromIndex)
+            multipliers.add(toIndex, multiplierToMove)
+            state.copy(multipliers = multipliers)
+        }
     }
 
     override fun onCleared() {

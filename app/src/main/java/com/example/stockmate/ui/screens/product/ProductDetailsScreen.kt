@@ -181,6 +181,7 @@ fun ProductDetailsContent(
     val focusManager = LocalFocusManager.current
     val productLogsChartViewModel: StockLogChartViewModel = hiltViewModel()
     val chartSeriesAdditionalRenderInfo by productLogsChartViewModel.chartSeriesAdditionalRenderInfo.collectAsState()
+    val chartSeriesStartTime by productLogsChartViewModel.startTime.collectAsState()
 
     var inputText by remember { mutableStateOf(product.currentStock.toString()) }
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
@@ -310,7 +311,8 @@ fun ProductDetailsContent(
 
                 StockLogHistoryChart(
                     modelProducer = productLogsChartViewModel.modelProducer,
-                    chartSeriesAdditionalRenderInfo = chartSeriesAdditionalRenderInfo
+                    chartSeriesAdditionalRenderInfo = chartSeriesAdditionalRenderInfo,
+                    startTime = chartSeriesStartTime
                 )
             }
         }

@@ -46,6 +46,7 @@ fun StockLogHistoryScreen(
     val selectedTimeRange by viewModel.selectedTimeRange.collectAsState()
     val chartSettings by viewModel.chartSettings.collectAsState()
     val chartSeriesAdditionalRenderInfo by viewModel.chartSeriesAdditionalRenderInfo.collectAsState()
+    val startTime by viewModel.startTime.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("Product Stock Log History", style = MaterialTheme.typography.headlineMedium)
@@ -59,7 +60,8 @@ fun StockLogHistoryScreen(
 
         StockLogHistoryChart(
             modelProducer = viewModel.modelProducer,
-            chartSeriesAdditionalRenderInfo = chartSeriesAdditionalRenderInfo
+            chartSeriesAdditionalRenderInfo = chartSeriesAdditionalRenderInfo,
+            startTime = startTime
         )
         Spacer(modifier = Modifier.height(24.dp))
 

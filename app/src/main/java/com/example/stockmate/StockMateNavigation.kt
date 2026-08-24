@@ -1,10 +1,12 @@
 package com.example.stockmate
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,8 +26,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import coil.disk.DiskCache
 import com.example.stockmate.ui.components.layout.MainAppLayout
 import com.example.stockmate.ui.screens.chart.StockLogHistoryScreen
+import com.example.stockmate.ui.screens.dish.DishFormScreen
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
@@ -35,6 +39,7 @@ import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import com.example.stockmate.ui.viewmodels.SettingsViewModel
 import com.example.stockmate.ui.viewmodels.chart.StockLogChartViewModel
+import com.example.stockmate.ui.viewmodels.dish.DishFormViewModel
 
 object Destinations {
     const val INVENTORY = "inventory"
@@ -43,6 +48,8 @@ object Destinations {
     const val EDIT_PRODUCT = "edit-product/{productId}"
     const val SETTINGS = "settings"
     const val STOCK_LOG_CHART = "stock-log-chart"
+    const val ADD_DISH = "add-dish"
+    const val EDIT_DISH = "edit-dish/{dishId}"
 }
 
 fun destinationToHeader(destination: String?): String {
@@ -52,6 +59,8 @@ fun destinationToHeader(destination: String?): String {
         Destinations.EDIT_PRODUCT -> "Edit Product"
         Destinations.PRODUCT_DETAILS -> "Product Details"
         Destinations.STOCK_LOG_CHART -> "Stock Log History"
+        Destinations.ADD_DISH -> "Add Dish"
+        Destinations.EDIT_DISH -> "Edit Dish"
         else -> "StockMate"
     }
 }
@@ -92,6 +101,11 @@ fun StockMateNavigation() {
                     }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
+                    IconButton(onClick = {
+                        navController.navigate(Destinations.ADD_DISH)
+                    }) {
+                        Icon(Icons.Default.RestaurantMenu, contentDescription = "Add Dish")
+                    }
                 }
             }
             else -> null
@@ -107,10 +121,11 @@ fun StockMateNavigation() {
     val onNavigationActionUpdate: ((@Composable (() -> Unit))?) -> Unit = { newNavigationAction ->
         dynamicNavigationAction = newNavigationAction
     }
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     MainAppLayout(
         onNavigateBack = {
-            navController.popBackStack()
+            backDispatcher?.onBackPressed()
         },
         currentRoute = currentRoute,
         dynamicTitle = dynamicTitle,
@@ -200,6 +215,33 @@ fun StockMateNavigation() {
 
                     StockLogHistoryScreen(
                         viewModel = viewModel
+                    )
+                }
+
+                composable(
+                    route = Destinations.ADD_DISH
+                ) {
+                    val viewModel: DishFormViewModel = hiltViewModel()
+
+                    DishFormScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(
+                    route = Destinations.EDIT_DISH,
+                    arguments = listOf(navArgument("dishId") { type = NavType.LongType })
+                ) {
+                    val viewModel: DishFormViewModel = hiltViewModel()
+
+                    DishFormScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
+                        }
                     )
                 }
             }

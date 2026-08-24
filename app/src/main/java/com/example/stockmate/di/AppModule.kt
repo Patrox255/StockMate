@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.example.stockmate.data.AppDatabase
+import com.example.stockmate.data.dao.DishDao
 import com.example.stockmate.data.dao.ProductDao
 import com.example.stockmate.data.dao.ProductMultiplierDao
 import com.example.stockmate.data.dao.StockLogDao
+import com.example.stockmate.data.repository.DishRepository
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.util.img.ImageStorage
 import dagger.Module
@@ -41,6 +43,8 @@ class AppModule {
     fun provideProductMultiplierDao(db: AppDatabase) = db.productMultiplierDao()
     @Provides
     fun provideStockLogDao(db: AppDatabase) = db.stockLogDao()
+    @Provides
+    fun provideDishDao(db: AppDatabase) = db.dishDao()
 
     @Provides
     @Singleton
@@ -56,6 +60,14 @@ class AppModule {
         productMultiplierDao,
         stockLogDao,
         imageStorage
+    )
+
+    @Provides
+    @Singleton
+    fun provideDishRepository(
+        dishDao: DishDao
+    ) = DishRepository(
+        dishDao
     )
 
     @Provides

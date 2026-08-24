@@ -30,4 +30,26 @@ object FormValidationUtil {
             }
         }
     }
+
+    fun objectNotNull(data: ValidatorGeneratorData = ValidatorGeneratorData()): (Any?) -> String?
+    {
+        return { value ->
+            if (value == null) {
+                data.customErrorMessage ?: "Must be selected!"
+            } else {
+                null
+            }
+        }
+    }
+
+    fun doubleGreaterThan(data: ValidatorGeneratorData = ValidatorGeneratorData(), threshold: Double): (String) -> String? {
+        return { value ->
+            val doubleValue = value.toDoubleOrNull()
+            if (doubleValue == null || doubleValue <= threshold) {
+                data.customErrorMessage ?: "Must be greater than $threshold"
+            } else {
+                null
+            }
+        }
+    }
 }

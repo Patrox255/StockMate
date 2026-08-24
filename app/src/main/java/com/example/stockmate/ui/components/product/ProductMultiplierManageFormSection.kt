@@ -15,24 +15,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.data.dtos.MultiplierField
 import com.example.stockmate.data.dtos.MultiplierFormState
+import com.example.stockmate.data.validationUtil.FieldErrorKey
+import com.example.stockmate.data.validationUtil.formErrors
 import com.example.stockmate.ui.components.form.FormTextField
+import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 
 @Composable
 fun ProductMultiplierManageFormSection(
     multiplier: MultiplierFormState,
-    onUpdateMultiplier: (id: String, name: String, value: String) -> Unit,
-    onRemoveMultiplier: (id: String) -> Unit,
+    onUpdateMultiplier: (localId: String, name: String, value: String) -> Unit,
+    onRemoveMultiplier: (localId: String) -> Unit,
     modifier: Modifier = Modifier,
     isDragging: Boolean,
-    dragModifier: Modifier = Modifier
+    dragModifier: Modifier = Modifier,
+    multipliersErrors: formErrors<ProductFormViewModel.MultiplierFormField> = emptyMap()
 ) {
     val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "Elevation animation")
     val bgColor by animateColorAsState(
         if (isDragging) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
         label = "Background color animation"
     )
+    val getMultiplierFieldError: (field: ProductFormViewModel.MultiplierFormField) -> List<String>? = { field ->
+        multipliersErrors[FieldErrorKey(
+            itemId = multiplier.localId,
+            field = field
+        )]
+    }
 
     Surface(
         modifier = modifier
@@ -61,7 +70,7 @@ fun ProductMultiplierManageFormSection(
                 onValueChange = { onUpdateMultiplier(multiplier.localId, it, multiplier.value) },
                 label = "Name (e.g. Pallet)",
                 modifier = Modifier.weight(1f),
-                errorMessages = multiplier.errors[MultiplierField.NAME] ?: emptyList()
+                errorMessages = getMultiplierFieldError(ProductFormViewModel.MultiplierFormField.NAME) ?: emptyList()
             )
 
             FormTextField(
@@ -69,7 +78,7 @@ fun ProductMultiplierManageFormSection(
                 onValueChange = { onUpdateMultiplier(multiplier.localId, multiplier.name, it) },
                 label = "Value",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                errorMessages = multiplier.errors[MultiplierField.VALUE] ?: emptyList(),
+                errorMessages = getMultiplierFieldError(ProductFormViewModel.MultiplierFormField.VALUE) ?: emptyList(),
                 modifier = Modifier.weight(1f)
             )
 

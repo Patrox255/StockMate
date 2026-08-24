@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.VisualTransformation
+import com.example.stockmate.ui.GenericSmallErrorsList
+import com.example.stockmate.ui.components.GenericSmallErrorMessage
 
 @Composable
 fun FormTextField(
@@ -30,15 +32,10 @@ fun FormTextField(
         isError = errorMessages.isNotEmpty(),
         supportingText = {
             if (errorMessages.isNotEmpty()) {
-                Column {
-                    errorMessages.forEach { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
+                GenericSmallErrorsList(
+                    errorMessages = errorMessages,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         keyboardOptions = keyboardOptions,

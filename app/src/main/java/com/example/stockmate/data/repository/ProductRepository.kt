@@ -30,6 +30,9 @@ class ProductRepository @Inject constructor(
                 products.map { it.withSortedMultipliers() }
             }
 
+    fun getAllProductsFlow(): Flow<List<Product>> =
+        productDao.getAllProductsFlow()
+
     fun getProductWithMultipliersByIdFlow(id: Long): Flow<ProductWithMultipliers?> =
         productDao.getProductWithMultipliersFlow(id)
             .map { product ->
@@ -98,19 +101,33 @@ class ProductRepository @Inject constructor(
         multipliers: List<ProductMultiplier>
     ) {
         db.withWriteTransaction {
-            // We start by updating the product simple data
+            // At first we update the product plain data
             productDao.updateProduct(product)
 
-            // Then we delete all existing multipliers for this product due to the fact that
-            // when we load all the multipliers to the form data we set their respective id to
-            // random values therefore we cannot update them directly, we have to delete the old ones and insert the new ones
-            productMultiplierDao.deleteMultipliersByProductIds(listOf(product.id))
+            // Then we check which multipliers are completely new
+            val existingMultipliers = productMultiplierDao.getMultipliersByProductId(product.id)
+            val existingIds = existingMultipliers.map { it.id }.toSet()
+            val newIds = multipliers
+                .map {it.id}
+                .filter {it != 0L}
+                .toSet()
 
-            // Finally, we insert the new multipliers
-            multipliers.forEach { multiplier ->
-                val multiplierWithProductId = multiplier.copy(productId = product.id)
-                productMultiplierDao.insertMultiplier(multiplierWithProductId)
+            // We delete the multipliers that are no longer present in the new list
+            val idsToDelete = existingIds - newIds
+            if (idsToDelete.isNotEmpty()) {
+                productMultiplierDao.deleteMultipliersByIds(idsToDelete.toList())
             }
+
+            // Finally we insert or update the multipliers that are present in the new list
+            multipliers.forEach { multiplier ->
+                if (multiplier.id == 0L) {
+                    productMultiplierDao.insertMultiplier(multiplier.copy(productId = product.id))
+                }
+                else {
+                    productMultiplierDao.updateMultiplier(multiplier.copy(productId = product.id))
+                }
+            }
+
         }
     }
 

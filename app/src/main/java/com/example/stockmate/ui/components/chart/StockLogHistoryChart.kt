@@ -1,6 +1,5 @@
 package com.example.stockmate.ui.components.chart
 
-import android.R
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -46,7 +44,8 @@ import java.time.format.DateTimeFormatter
 fun StockLogHistoryChart(
     modelProducer: CartesianChartModelProducer,
     modifier: Modifier = Modifier,
-    chartSeriesAdditionalRenderInfo: List<ChartSeriesAdditionalRenderInfo>
+    chartSeriesAdditionalRenderInfo: List<ChartSeriesAdditionalRenderInfo>,
+    startTime: Long
 ) {
     val dateTimeAxisLabelFormatter = remember { DateTimeFormatter.ofPattern("dd/MM") }
     val dateTimeMarkerFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy\nHH:mm") }
@@ -81,9 +80,18 @@ fun StockLogHistoryChart(
 
                 val productLines = lineTarget.points.mapNotNull { point ->
                     val seriesIndex = point.entry.seriesIndex
-                    Log.d("StockLogHistoryChart", "${chartSeriesAdditionalRenderInfo}\n${seriesIndex}")
+                    val infoSize = chartSeriesAdditionalRenderInfo.size
+
+                    if (infoSize == 0) return@mapNotNull null
+
+                    // This is a workaround to handle the prediction series which correspond to each of the products
+                    // and are added after the history series, so we need to map them back to the original product series index.
+                    // This is safe because we know that the whole list size would be equal to the number of products
+                    // times 2 (history + prediction), so the modulo operation will always give us a valid index in the original list.
+                    val baseSeriesIndex = seriesIndex % infoSize
+                    val isPrediction = seriesIndex >= infoSize
                     val relatedAdditionalInfo =
-                        chartSeriesAdditionalRenderInfo.getOrNull(seriesIndex)
+                        chartSeriesAdditionalRenderInfo.getOrNull(baseSeriesIndex)
                     val stockValue = point.entry.y
                     if (relatedAdditionalInfo == null) {
                         return@ValueFormatter "Unknown product: ${stockValue} (Unknown operation)"
@@ -91,8 +99,23 @@ fun StockLogHistoryChart(
                     val reason: ChangeReason? = if (relatedAdditionalInfo.reasonsByX.containsKey(point.entry.x))
                         relatedAdditionalInfo.reasonsByX.get(point.entry.x) else null
                     val productName = relatedAdditionalInfo.productName
+                    Log.d("StockLogHistoryChart", "Marker for product: $productName, stockValue: $stockValue, time: ${point.entry.x}, curStockPointTime: ${relatedAdditionalInfo.curStockPointTime}, diff: ${relatedAdditionalInfo.curStockPointTime?.let { point.entry.x - it }}")
 
-                    "${productName}: ${stockValue} (${reason?.displayName ?: "?"})"
+                    if (isPrediction) {
+                        "${productName}: ${stockValue} (Predicted Stock)"
+                    } else {
+                        "${productName}: ${stockValue} (${
+                            if (reason?.displayName != null) {
+                                reason.displayName
+                            } else if (relatedAdditionalInfo.curStockPointTime != null && xValue == relatedAdditionalInfo.curStockPointTime.toDouble()) {
+                                "Current Stock"
+                            } else if (xValue == startTime.toDouble()) {
+                                "Start Stock"
+                            } else {
+                                "?"
+                            }
+                        })"
+                    }
                 }
 
                 "${dateString}\n" + productLines.joinToString(separator = "\n")
@@ -100,7 +123,7 @@ fun StockLogHistoryChart(
         }
     )
 
-    val lines = chartColors.mapIndexed {index, color ->
+    val historyLines = chartColors.mapIndexed { index, color ->
         val seriesReasons = chartSeriesReasons.getOrNull(index) ?: emptyMap()
         val circlePoint = LineCartesianLayer.Point(
             component = rememberShapeComponent(
@@ -170,8 +193,18 @@ fun StockLogHistoryChart(
         )
     }
 
-    val lineProvider = if (lines.isNotEmpty()) {
-        LineCartesianLayer.LineProvider.series(lines)
+    val predictionLines = chartColors.map {color ->
+        LineCartesianLayer.rememberLine(
+            fill = LineCartesianLayer.LineFill.single(Fill(color)),
+            stroke = LineCartesianLayer.LineStroke.Dashed(
+                thickness = 2.dp,
+            ),
+            pointProvider = null
+        )
+    }
+
+    val lineProvider = if (historyLines.isNotEmpty()) {
+        LineCartesianLayer.LineProvider.series(historyLines + predictionLines)
     } else {
         LineCartesianLayer.LineProvider.series(LineCartesianLayer.rememberLine())
     }
@@ -201,16 +234,6 @@ fun StockLogHistoryChart(
                         .atZone(ZoneId.systemDefault())
                         .format(dateTimeAxisLabelFormatter)
                 },
-//                label = rememberAxisLabelComponent(
-//                    style = TextStyle(
-//                        color = MaterialTheme.colorScheme.onSurface,
-//                        fontSize = MaterialTheme.typography.labelSmall.fontSize,
-//                    ),
-//                    margins = Insets(
-//                        horizontal = 0.dp,
-//                        vertical = 8.dp
-//                    ),
-//                ),
                 label = rememberTextComponent(
                     style = TextStyle(
                         color  = MaterialTheme.colorScheme.onSurface,

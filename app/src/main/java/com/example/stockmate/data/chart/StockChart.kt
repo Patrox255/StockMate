@@ -8,7 +8,8 @@ import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerModel
 data class StockChartLineData(
     val product: Product,
     val points: List<StockChartPoint>,
-    val color: Color
+    val color: Color,
+    val curStockPointTime: Long?
 )
 
 data class StockChartPoint(

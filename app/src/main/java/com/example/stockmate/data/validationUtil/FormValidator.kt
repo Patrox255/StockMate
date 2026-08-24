@@ -1,12 +1,26 @@
 package com.example.stockmate.data.validationUtil
 
+import androidx.compose.ui.text.MultiParagraph
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.collections.set
 
-typealias formErrors<fieldsType> = Map<fieldsType, MutableList<String>>
+typealias formErrors<fieldsType> = Map<FieldErrorKey<fieldsType>, MutableList<String>>
+typealias formErrorsSingleForm<fieldsType> = Map<fieldsType, MutableList<String>>
 typealias validationFuns<T> = Map<T, List<(String) -> String?>>
+
+data class FieldErrorKey<TField>(
+    // Should be null in case of not handling a list of items but a single form
+    val itemId: String? = null,
+    val field: TField
+)
+
+data class ValidatableItem<TField>(
+    val id: String,
+    val fields: Map<TField, String>
+)
 
 class FormValidator<TField : Enum<TField>>(
     private val enumClass: Class<TField>,
@@ -19,63 +33,92 @@ class FormValidator<TField : Enum<TField>>(
     val errors: StateFlow<formErrors<TField>> = _errors.asStateFlow()
     val error = _error.asStateFlow()
 
-    fun updateErrorsBasedOnFieldNewVal(
-        field: TField,
-        value: String,
-        errors: formErrors<TField>,
-        validationFuns: validationFuns<TField>
-    ): Map<TField, MutableList<String>> {
-        val newErrorsMap = errors.toMutableMap()
-        val fieldErrors = mutableListOf<String>()
+    private fun validateField(field: TField, value: String): List<String> {
+        return validationFuns[field]
+            ?.mapNotNull { rule -> rule(value) }
+            ?: emptyList()
+    }
 
-        if (validationFuns.containsKey(field)) {
-            val relatedFuns = validationFuns[field]!!
-            relatedFuns.forEach { func ->
-                val funcVal = func(value)
-                if (funcVal != null)
-                    fieldErrors.add(funcVal)
+    fun validateField(
+        itemId: String?,
+        field: TField,
+        value: String
+    ) {
+        _errors.update { currentErrors ->
+            val errors = validateField(field, value)
+            val key = FieldErrorKey(itemId, field)
+
+            if (errors.isEmpty()) {
+                currentErrors - key
+            } else {
+                currentErrors + (key to errors.toMutableList())
             }
         }
-
-        if (fieldErrors.isNotEmpty()) {
-            newErrorsMap[field] = fieldErrors
-        } else {
-            newErrorsMap.remove(field)
-        }
-        return newErrorsMap
     }
 
     fun onFormFieldChangedGenerator(
-        field: TField, updateState: (String) -> Unit
+        field: TField, updateState: (String) -> Unit, itemId: String? = null
     ): (String) -> Unit {
         return { value ->
             updateState(value)
-            _errors.update { currentErrors ->
-                updateErrorsBasedOnFieldNewVal(field, value, currentErrors, validationFuns)
-            }
+            validateField(itemId, field, value)
         }
     }
 
-    fun validateBeforeSubmit(
-        formFieldsToFormStateVals: Map<TField, String>
-    ): Boolean {
-        _error.value = null
-        var errors: formErrors<TField> = mutableMapOf()
+    private fun validateItemFields(
+        fields: Map<TField, String>,
+        errorMsgGenerator: (field: TField) -> String = { "Missing field ${it}" },
+        fieldErrorKeyGenerator: (field: TField) -> FieldErrorKey<TField> = { FieldErrorKey(null, it) },
+    ): Map<FieldErrorKey<TField>, MutableList<String>> {
+        val errors = mutableMapOf<FieldErrorKey<TField>, MutableList<String>>()
 
         enumClass.enumConstants.forEach { entry ->
-            if (!formFieldsToFormStateVals.containsKey(entry))
-                throw Error("Check your validateBeforeSubmit mapping argument!")
-            val curFormStateFieldVal = formFieldsToFormStateVals.getValue(entry)
-            errors = updateErrorsBasedOnFieldNewVal(
-                entry,
-                curFormStateFieldVal,
-                errors,
-                validationFuns
+            if (!fields.containsKey(entry))
+                throw Error(errorMsgGenerator(entry))
+            val value = fields[entry]
+            val fieldErrors = validateField(entry, value ?: "")
+            if (fieldErrors.isNotEmpty()) {
+                errors[fieldErrorKeyGenerator(entry)] = fieldErrors.toMutableList()
+            }
+        }
+
+        return errors
+    }
+
+    fun validateItems(
+        items: List<ValidatableItem<TField>>
+    ): Boolean {
+        _error.value = null
+        val errors = mutableMapOf<FieldErrorKey<TField>, MutableList<String>>()
+
+        items.forEach { item ->
+            val itemFields = item.fields
+            errors.putAll(
+                validateItemFields(
+                    itemFields,
+                    errorMsgGenerator = { "Missing field ${it} in item with id ${item.id}" },
+                    fieldErrorKeyGenerator = { FieldErrorKey(item.id, it) }
+                )
             )
         }
 
         _errors.value = errors
-        if (errors.entries.isNotEmpty()) {
+
+        if (errors.isNotEmpty()) {
+            _error.value = defaultErrorMessage
+            return false
+        }
+
+        return true
+    }
+
+    fun validateSingleForm(fields: Map<TField, String>): Boolean {
+        _error.value = null
+        val errors = validateItemFields(fields)
+
+        _errors.value = errors
+
+        if (errors.isNotEmpty()) {
             _error.value = defaultErrorMessage
             return false
         }

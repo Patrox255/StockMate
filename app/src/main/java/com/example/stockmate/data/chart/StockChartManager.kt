@@ -62,11 +62,12 @@ class StockChartManager @Inject constructor(
                 ))
             }
 
+            val curStockPoint = StockChartPoint(
+                timestamp = System.currentTimeMillis(),
+                value = product.currentStock
+            )
             if (points.isNotEmpty()) {
-                points.add(StockChartPoint(
-                    timestamp = System.currentTimeMillis(),
-                    value = product.currentStock
-                ))
+                points.add(curStockPoint)
                 points.add(StockChartPoint(
                     timestamp = startTime,
                     value = productLogs.first().stockBefore
@@ -80,10 +81,7 @@ class StockChartManager @Inject constructor(
                     timestamp = startTime,
                     value = product.currentStock
                 ))
-                points.add(StockChartPoint(
-                    timestamp = System.currentTimeMillis(),
-                    value = product.currentStock
-                ))
+                points.add(curStockPoint)
             }
 
             val sortedPoints = points.sortedBy { it.timestamp }
@@ -91,7 +89,8 @@ class StockChartManager @Inject constructor(
                 StockChartLineData(
                     product = product,
                     points = sortedPoints,
-                    color = generateStableColor(product.id)
+                    color = generateStableColor(product.id),
+                    curStockPointTime = curStockPoint.timestamp
                 )
             )
         }

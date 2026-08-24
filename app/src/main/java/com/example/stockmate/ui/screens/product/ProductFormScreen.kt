@@ -2,7 +2,6 @@ package com.example.stockmate.ui.screens.product
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.camera.camera2.pipe.media.ImageSource
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,18 +28,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
+import com.example.stockmate.data.validationUtil.FieldErrorKey
 import com.example.stockmate.ui.components.form.FormTextField
 import com.example.stockmate.ui.components.GenericErrorMessage
 import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.TabbedComponent
 import com.example.stockmate.ui.components.TabbedComponentEntry
 import com.example.stockmate.ui.components.img.ImagePicker
-import com.example.stockmate.ui.components.img.ImgPreviewAmongDifferentStyles
 import com.example.stockmate.ui.components.img.LocalGallerySource
 import com.example.stockmate.ui.components.img.OpenFoodFactsSource
 import com.example.stockmate.ui.components.img.PixabaySource
-import com.example.stockmate.ui.components.navigation.NavigateBack
 import com.example.stockmate.ui.components.navigation.NavigateBackDialog
 import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductMultipliersManageFormSection
@@ -59,9 +54,10 @@ fun ProductFormScreen(
 {
     val formState by viewModel.formState.collectAsState()
     val focusManager = LocalFocusManager.current
-    val errors by viewModel.errors.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val multipliers by viewModel.multipliersManager.multipliers.collectAsState()
+    val productErrors by viewModel.productErrors.collectAsState()
+    val productError by viewModel.productGlobalError.collectAsState()
+    val multipliers = formState.multipliers
+    val multiplierErrors by viewModel.multiplierErrors.collectAsState()
     val isLoadingExistingData by viewModel.isLoadingExistingData.collectAsState()
     val buttonText = if (viewModel.isEditMode) "Update Product" else "Save Product"
 
@@ -170,7 +166,9 @@ fun ProductFormScreen(
                 value = formState.name,
                 onValueChange = {viewModel.onNameChanged(it)},
                 label = "Product Name",
-                errorMessages = errors[ProductFormViewModel.AddProductFormField.NAME] ?: emptyList(),
+                errorMessages = productErrors[FieldErrorKey(
+                    field = ProductFormViewModel.AddProductFormField.NAME
+                )] ?: emptyList(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -178,7 +176,9 @@ fun ProductFormScreen(
                 value = formState.unit,
                 onValueChange = {viewModel.onUnitChanged(it)},
                 label = "Unit (e.g., kg, pcs, l)",
-                errorMessages = errors[ProductFormViewModel.AddProductFormField.UNIT] ?: emptyList(),
+                errorMessages = productErrors[FieldErrorKey(
+                    field = ProductFormViewModel.AddProductFormField.UNIT
+                )] ?: emptyList(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -187,19 +187,22 @@ fun ProductFormScreen(
                 onValueChange = {viewModel.onTargetStockChanged(it)},
                 label = "Target Stock",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                errorMessages = errors[ProductFormViewModel.AddProductFormField.TARGET_STOCK] ?: emptyList(),
+                errorMessages = productErrors[FieldErrorKey(
+                    field = ProductFormViewModel.AddProductFormField.TARGET_STOCK
+                )] ?: emptyList(),
                 modifier = Modifier.fillMaxWidth()
             )
 
             ProductMultipliersManageFormSection(
                 multipliers = multipliers,
-                onAddMultiplier = viewModel.multipliersManager::addEmptyMultiplier,
-                onUpdateMultiplier = viewModel.multipliersManager::updateMultiplier ,
-                onRemoveMultiplier = viewModel.multipliersManager::removeMultiplier,
+                onAddMultiplier = viewModel::addEmptyMultiplier,
+                onUpdateMultiplier = viewModel::updateMultiplier ,
+                onRemoveMultiplier = viewModel::removeMultiplier,
                 modifier = Modifier.padding(top = 16.dp),
                 onMultiplierMove = { from, to ->
-                    viewModel.multipliersManager.moveMultiplier(from, to)
-                }
+                    viewModel.moveMultiplier(from, to)
+                },
+                multipliersErrors = multiplierErrors
             )
 
             Button(
@@ -211,17 +214,12 @@ fun ProductFormScreen(
                 Text(buttonText)
             }
 
-            if (error != null) {
+            if (productError != null) {
                 GenericErrorMessage(
-                    errorMessage = error ?: "An unknown error occurred.",
+                    errorMessage = productError ?: "An unknown error occurred.",
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
         }
     }
-}
-
-@Composable
-fun TabbedComponentEntry(title: String, content: () -> Unit) {
-    TODO("Not yet implemented")
 }

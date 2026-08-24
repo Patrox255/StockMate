@@ -25,6 +25,7 @@ fun MultiplierFormState.toMultiplier(
     sortOrder: Int
 ): ProductMultiplier {
     return ProductMultiplier(
+        id = databaseId ?: 0L,
         productId = productId,
         name = name,
         value = value.toFloat(),

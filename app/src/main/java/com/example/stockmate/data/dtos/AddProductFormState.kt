@@ -6,4 +6,5 @@ data class AddProductFormState(
     val targetStock: String = "",
     val currentStock: String = "0",
     val imagePath: String? = null,
+    val multipliers: List<MultiplierFormState> = emptyList()
 )

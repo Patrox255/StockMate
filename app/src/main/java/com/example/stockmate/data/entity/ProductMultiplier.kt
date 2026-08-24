@@ -18,7 +18,7 @@ import androidx.room3.PrimaryKey
     indices = [Index("productId")]
 )
 data class ProductMultiplier (
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
     val productId: Long,
     val name: String,
     val value: Float,

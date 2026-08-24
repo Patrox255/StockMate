@@ -11,16 +11,19 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.dtos.MultiplierFormState
+import com.example.stockmate.data.validationUtil.formErrors
+import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import sh.calvin.reorderable.ReorderableColumn
 
 @Composable
 fun ProductMultipliersManageFormSection(
     multipliers: List<MultiplierFormState>,
     onAddMultiplier: () -> Unit,
-    onUpdateMultiplier: (id: String, name: String, value: String) -> Unit,
-    onRemoveMultiplier: (id: String) -> Unit,
+    onUpdateMultiplier: (localId: String, name: String, value: String) -> Unit,
+    onRemoveMultiplier: (localId: String) -> Unit,
     onMultiplierMove: (from: Int, to: Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    multipliersErrors: formErrors<ProductFormViewModel.MultiplierFormField> = emptyMap()
 ) {
     val haptic = LocalHapticFeedback.current
 
