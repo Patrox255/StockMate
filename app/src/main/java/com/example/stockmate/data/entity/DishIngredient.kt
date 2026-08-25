@@ -19,11 +19,18 @@ import androidx.room3.PrimaryKey
             parentColumns = ["id"],
             childColumns = ["productId"],
             onDelete = ForeignKey.RESTRICT
+        ),
+        ForeignKey(
+            entity = ProductMultiplier::class,
+            parentColumns = ["id"],
+            childColumns = ["multiplierId"],
+            onDelete = ForeignKey.RESTRICT
         )
     ],
     indices = [
         Index("dishId"),
-        Index("productId")
+        Index("productId"),
+        Index("multiplierId")
     ]
 )
 data class DishIngredient (

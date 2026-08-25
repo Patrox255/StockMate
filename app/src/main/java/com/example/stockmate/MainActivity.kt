@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.seeder.DatabaseSeeder
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
@@ -28,13 +29,13 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
-    lateinit var repository: ProductRepository
+    lateinit var databaseSeeder: DatabaseSeeder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         lifecycleScope.launch {
-            repository.seedSampleData()
+            databaseSeeder.seedDatabase()
         }
 
         setContent {

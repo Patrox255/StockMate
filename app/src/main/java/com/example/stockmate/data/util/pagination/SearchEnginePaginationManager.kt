@@ -1,93 +1,96 @@
-package com.example.stockmate.data.util.selection
+package com.example.stockmate.data.util.pagination
 
 import android.util.Log
 import com.example.stockmate.data.util.search.SearchSortFilterEngine
-import com.example.stockmate.ui.state.selection.PaginatedSelectionState
+import com.example.stockmate.ui.state.pagination.PaginatedState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class PaginatedSelectionManager<T>(
+class SearchEnginePaginationManager<T>(
     private val searchEngine: SearchSortFilterEngine<T>,
     private val scope: CoroutineScope,
-    private val pageSize: Int = 20
+    private val pageSize: Int = 20,
+    private val errorLoadingItemsMessage: String = "Failed to load items"
 ) {
-    private val _state = MutableStateFlow(PaginatedSelectionState<T>())
+    private val _state = MutableStateFlow(PaginatedState<T>())
     val state = _state.asStateFlow()
+
+    private var sourceJob: Job? = null
+    // We use this flag to indicate that the current page should be reset to 0 when user
+    // changes the search query. We don't reset the page immediately to avoid a flicker in the UI
+    // when the search query is updated.
+    private var pendingPageReset = false
 
     lateinit var allItems: StateFlow<List<T>>
         private set
-    lateinit var currentItems: StateFlow<List<T>>
-        private set
 
     fun initialize(source: Flow<List<T>>) {
-        allItems = searchEngine.process(source, scope)
-        Log.d("PaginatedSelectionManager", "Initialized with source: ${source}")
-        Log.d("PaginatedSelectionManager", "All items flow: ${allItems.value}")
+        sourceJob?.cancel()
 
-//        combine(
-//            allItems,
-//            searchEngine.searchQuery
-//        ) {items, _ ->
-//            val totalPages = calculateTotalPages(items.size)
-//            val currentPage = _state.value.currentPage
-//                .coerceIn(
-//                    0,
-//                    (totalPages - 1).coerceAtLeast(0)
-//                )
-//            Log.d("PaginatedSelectionManager", "Updating page to: $currentPage")
-//            val pageItems = getPageItems(items, currentPage)
-//            _state.value = _state.value.copy(
-//                items = pageItems,
-//                currentPage = currentPage,
-//                totalPages = totalPages,
-//                visiblePages = calculateVisiblePages(
-//                    currentPage = currentPage,
-//                    totalPages = totalPages
-//                )
-//            )
-//            Log.d("PaginatedSelectionManager", "State updated: ${_state.value}")
-//        }.stateIn(
-//            scope,
-//            started = SharingStarted.WhileSubscribed(5000),
-//            initialValue = Unit
-//        )
-        scope.launch {
-            allItems.collect { items ->
-                val totalPages = calculateTotalPages(items.size)
-                val currentPage = _state.value.currentPage
-                    .coerceIn(
-                        0,
-                        (totalPages - 1).coerceAtLeast(0)
-                    )
-                Log.d("PaginatedSelectionManager", "Updating page to: $currentPage")
-                val pageItems = getPageItems(items, currentPage)
+        _state.value = PaginatedState(
+            isLoading = true,
+            error = null
+        )
+        searchEngine.updateSearchQuery("")
+        allItems = searchEngine.process(source, scope)
+
+        sourceJob = scope.launch {
+            try {
+                allItems.collect { items ->
+//                    delay(5000)
+                    updateStateForItems(items)
+                }
+                // Due to cancelling the job when the source is re-initialized,
+                // we can ignore the cancellation exception here.
+            } catch (e: CancellationException) {}
+            catch (e: Exception) {
+                Log.e("PaginatedSelectionManager", "Error loading items: ${e.message}", e)
                 _state.value = _state.value.copy(
-                    items = pageItems,
-                    currentPage = currentPage,
-                    totalPages = totalPages,
-                    visiblePages = calculateVisiblePages(
-                        currentPage = currentPage,
-                        totalPages = totalPages
-                    )
+                    isLoading = false,
+                    error = errorLoadingItemsMessage
                 )
-                Log.d("PaginatedSelectionManager", "State updated: ${_state.value}")
             }
         }
+    }
+
+    private fun updateStateForItems(items: List<T>) {
+        val requestedPage = if (pendingPageReset) 0 else _state.value.currentPage
+        pendingPageReset = false
+
+        val totalPages = calculateTotalPages(items.size)
+        val currentPage = requestedPage
+            .coerceIn(
+                0,
+                (totalPages - 1).coerceAtLeast(0)
+            )
+        val pageItems = getPageItems(items, currentPage)
+        _state.value = _state.value.copy(
+            items = pageItems,
+            currentPage = currentPage,
+            totalPages = totalPages,
+            visiblePages = calculateVisiblePages(
+                currentPage = currentPage,
+                totalPages = totalPages
+            ),
+            error = null,
+            isLoading = false
+        )
     }
 
     fun updateSearchQuery(query: String) {
         searchEngine.updateSearchQuery(query)
         _state.value = _state.value.copy(
-            searchQuery = query
+            searchQuery = query,
+            isLoading = true,
+            items = emptyList()
         )
-        updatePage(0)
+
     }
     fun goToPage(page: Int) {
         if (!::allItems.isInitialized) return

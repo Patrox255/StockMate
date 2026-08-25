@@ -3,22 +3,33 @@ package com.example.stockmate.ui.viewmodels.dish
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.stockmate.data.entity.DishWithIngredients
+import com.example.stockmate.data.entity.IngredientWithProductAndMultiplier
 import com.example.stockmate.data.entity.Product
 import com.example.stockmate.data.entity.ProductMultiplier
+import com.example.stockmate.data.mappers.toDishEntity
 import com.example.stockmate.data.mappers.toDraftDish
+import com.example.stockmate.data.mappers.toEntity
+import com.example.stockmate.data.mappers.toIngredients
 import com.example.stockmate.data.repository.DishRepository
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.FormImageTracker
 import com.example.stockmate.data.util.search.SearchSortFilterEngine
-import com.example.stockmate.data.util.selection.PaginatedSelectionManager
+import com.example.stockmate.data.util.pagination.SearchEnginePaginationManager
 import com.example.stockmate.data.validationUtil.FieldErrorKey
 import com.example.stockmate.data.validationUtil.FormValidationUtil
 import com.example.stockmate.data.validationUtil.FormValidator
+import com.example.stockmate.data.validationUtil.ValidatableItem
 import com.example.stockmate.data.validationUtil.ValidatorGeneratorData
+import com.example.stockmate.data.validationUtil.formErrors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -28,13 +39,16 @@ data class DraftIngredient(
     val databaseId: Long? = null,
     val product: Product? = null,
     val multiplier: ProductMultiplier? = null,
-    val amount: Double = 0.0
+    // Thanks to validation this will always be a valid double,
+    // but we keep it as a string for the UI to handle invalid input gracefully
+    val amountStr: String = "0.0",
 )
 
 data class DraftDish(
     val name: String = "New dish",
     val ingredients: List<DraftIngredient> = emptyList(),
-    val description: String = ""
+    val description: String = "",
+    val imagePath: String? = null
 )
 
 sealed class DishFormUiEvent {
@@ -46,7 +60,8 @@ sealed class DishFormUiEvent {
 class DishFormViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val dishRepository: DishRepository,
-    private val productRepository: ProductRepository
+    private val productRepository: ProductRepository,
+    private val formImageTracker: FormImageTracker
 ) : ViewModel() {
     enum class AddDishFormField {
         NAME,
@@ -56,6 +71,10 @@ class DishFormViewModel @Inject constructor(
         PRODUCT,
         MULTIPLIER,
         AMOUNT
+    }
+    companion object {
+        const val DEFAULT_PRODUCTS_SELECTION_PAGE_SIZE = 20
+        const val DEFAULT_MULTIPLIERS_SELECTION_PAGE_SIZE = 20
     }
 
     private val dishFormValidator = FormValidator(
@@ -119,18 +138,61 @@ class DishFormViewModel @Inject constructor(
             item.name.contains(query, ignoreCase = true)
         },
     )
+    private val _multipliersSearchEngine = SearchSortFilterEngine<ProductMultiplier>(
+        initialFilterGroups = emptyList(),
+        searchMatcher = { item, query ->
+            item.name.contains(query, ignoreCase = true)
+        },
+    )
 
     private var initialState = DraftDish()
 
     val dishId: Long? = savedStateHandle.get<Long>("dishId")
     val isEditMode: Boolean = dishId != null
-    val productsPaginatedSelectionManager = PaginatedSelectionManager(
+    val productsSearchEnginePaginationManager = SearchEnginePaginationManager(
         searchEngine = _productsSearchEngine,
         scope = viewModelScope,
-        pageSize = 5
+        pageSize = DEFAULT_PRODUCTS_SELECTION_PAGE_SIZE
     )
-    val productsPaginatedSelectionState = productsPaginatedSelectionManager.state
+    val productsPaginatedSelectionState = productsSearchEnginePaginationManager.state
+    val multipliersSearchEnginePaginationManager = SearchEnginePaginationManager(
+        searchEngine = _multipliersSearchEngine,
+        scope = viewModelScope,
+        pageSize = DEFAULT_MULTIPLIERS_SELECTION_PAGE_SIZE
+    )
+    val multipliersPaginatedSelectionState = multipliersSearchEnginePaginationManager.state
     val dish = _dish.asStateFlow()
+    val dishWithIngredientsForPreview = dish.map { dish ->
+        DishWithIngredients(
+            dish = dish.toDishEntity(dishId),
+            ingredients = dish.ingredients.map { ingredient ->
+                IngredientWithProductAndMultiplier(
+                    ingredient = ingredient.toEntity(dishId),
+                    product = ingredient.product ?: Product(
+                        id = 0L,
+                        name = "No product selected",
+                        unit = "Unknown unit",
+                        currentStock = 0f,
+                        targetStock = 0f
+                    ),
+                    multiplier = ingredient.multiplier ?: ProductMultiplier(
+                        id = 0L,
+                        productId = ingredient.product?.id ?: 0L,
+                        name = "No multiplier selected",
+                        value = 0f,
+                        sortOrder = 0
+                    )
+                )
+            }
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = DishWithIngredients(
+            dish = DraftDish().toDishEntity(dishId),
+            ingredients = emptyList()
+        )
+    )
     val isLoadingExistingData = _isLoadingExistingData.asStateFlow()
     val uiEvent = _uiEvent.asSharedFlow()
     val hasUnsavedChanges: Boolean
@@ -139,7 +201,7 @@ class DishFormViewModel @Inject constructor(
         else _dish.value != initialState
 
     init {
-        productsPaginatedSelectionManager.initialize(productRepository.getAllProductsFlow())
+        productsSearchEnginePaginationManager.initialize(productRepository.getAllProductsFlow())
 
         if (isEditMode) {
             dishId?.let { loadDishData(it) }
@@ -174,18 +236,28 @@ class DishFormViewModel @Inject constructor(
                 }
             }
         )
+        validateIngredient(updatedIngredient)
     }
-    val getIngredientFieldErrors: (localId: String, field: AddIngredientFormField) -> MutableList<String> = { localId, field ->
-        val ingredient = _dish.value.ingredients.find { it.localId == localId }
-        if (ingredient == null) {
-            mutableListOf()
-        } else {
-            ingredientErrors.value[FieldErrorKey(
-                field = field,
-                itemId = localId
-            )] ?: mutableListOf()
-        }
+    private fun validateIngredient(ingredient: DraftIngredient): Boolean {
+        val isValid = ingredientFormValidator.validateItems(
+            listOf(
+                ValidatableItem(
+                    id = ingredient.localId,
+                    fields = mapOf(
+                        AddIngredientFormField.PRODUCT to ingredient.product,
+                        AddIngredientFormField.MULTIPLIER to ingredient.multiplier,
+                        AddIngredientFormField.AMOUNT to ingredient.amountStr
+                    )
+                )
+            )
+        )
+        return isValid
     }
+    fun ingredientFieldErrors(
+        errors: formErrors<AddIngredientFormField>,
+        localId: String,
+        field: AddIngredientFormField
+    ): MutableList<String> = errors[FieldErrorKey(itemId = localId, field = field)] ?: mutableListOf()
     fun saveDish() {
         val isDishValid = dishFormValidator.validateSingleForm(
             mapOf(
@@ -193,10 +265,25 @@ class DishFormViewModel @Inject constructor(
                 AddDishFormField.DESCRIPTION to _dish.value.description
             )
         )
-        if (!isDishValid)
+        val ingredientsValidationResults = _dish.value.ingredients.map {ingredient ->
+            validateIngredient(ingredient)
+        }
+        val hasAnyIngredientErrors = ingredientsValidationResults.contains(false)
+        if (!isDishValid || hasAnyIngredientErrors)
             return
 
         viewModelScope.launch {
+            val dishEntity = _dish.value.toDishEntity(dishId)
+            val ingredients = _dish.value.ingredients.toIngredients(dishId)
+
+            if (isEditMode) {
+                dishRepository.updateDishWithIngredients(dishEntity, ingredients)
+            } else {
+                dishRepository.insertDishWithIngredients(dishEntity, ingredients)
+            }
+
+            formImageTracker.markAsSaved()
+            formImageTracker.cleanUp()
             _uiEvent.emit(DishFormUiEvent.NavigateBack)
         }
     }
@@ -214,7 +301,36 @@ class DishFormViewModel @Inject constructor(
 
             _dish.value = dishWithIngredients.toDraftDish()
             initialState = _dish.value
+            formImageTracker.init(_dish.value.imagePath)
             _isLoadingExistingData.value = false
         }
+    }
+    fun selectIngredientProduct(
+        localId: String,
+        product: Product
+    ) {
+        val relatedIngredient = _dish.value.ingredients.find { it.localId == localId }
+        if (relatedIngredient != null) {
+            updateIngredient(
+                relatedIngredient.copy(
+                    product = product,
+                    multiplier = null
+                )
+            )
+        }
+
+        multipliersSearchEnginePaginationManager.initialize(
+            productRepository.getMultipliersByProductIdFlow(product.id)
+        )
+    }
+    fun onImageChanged(newPath: String?) {
+        formImageTracker.onImageChanged(newPath)
+        _dish.value = _dish.value.copy(imagePath = newPath)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+        formImageTracker.cleanUp()
     }
 }

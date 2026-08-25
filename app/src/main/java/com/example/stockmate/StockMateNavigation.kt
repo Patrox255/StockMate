@@ -29,7 +29,9 @@ import androidx.navigation.navArgument
 import coil.disk.DiskCache
 import com.example.stockmate.ui.components.layout.MainAppLayout
 import com.example.stockmate.ui.screens.chart.StockLogHistoryScreen
+import com.example.stockmate.ui.screens.dish.DishDetailsScreen
 import com.example.stockmate.ui.screens.dish.DishFormScreen
+import com.example.stockmate.ui.screens.dish.DishInventoryScreen
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
@@ -39,7 +41,9 @@ import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import com.example.stockmate.ui.viewmodels.SettingsViewModel
 import com.example.stockmate.ui.viewmodels.chart.StockLogChartViewModel
+import com.example.stockmate.ui.viewmodels.dish.DishDetailsViewModel
 import com.example.stockmate.ui.viewmodels.dish.DishFormViewModel
+import com.example.stockmate.ui.viewmodels.dish.DishInventoryViewModel
 
 object Destinations {
     const val INVENTORY = "inventory"
@@ -50,6 +54,8 @@ object Destinations {
     const val STOCK_LOG_CHART = "stock-log-chart"
     const val ADD_DISH = "add-dish"
     const val EDIT_DISH = "edit-dish/{dishId}"
+    const val DISH_INVENTORY = "dish-inventory"
+    const val DISH_DETAILS = "dish-details/{dishId}"
 }
 
 fun destinationToHeader(destination: String?): String {
@@ -61,6 +67,8 @@ fun destinationToHeader(destination: String?): String {
         Destinations.STOCK_LOG_CHART -> "Stock Log History"
         Destinations.ADD_DISH -> "Add Dish"
         Destinations.EDIT_DISH -> "Edit Dish"
+        Destinations.DISH_INVENTORY -> "Dishes"
+        Destinations.DISH_DETAILS -> "Dish Details"
         else -> "StockMate"
     }
 }
@@ -102,9 +110,9 @@ fun StockMateNavigation() {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                     IconButton(onClick = {
-                        navController.navigate(Destinations.ADD_DISH)
+                        navController.navigate(Destinations.DISH_INVENTORY)
                     }) {
-                        Icon(Icons.Default.RestaurantMenu, contentDescription = "Add Dish")
+                        Icon(Icons.Default.RestaurantMenu, contentDescription = "Dishes")
                     }
                 }
             }
@@ -143,10 +151,10 @@ fun StockMateNavigation() {
                     InventoryScreen(
                         viewModel = viewModel,
                         onNavigateToDetails = { productId ->
-                            navController.navigate("details/${productId}")
+                            navController.navigate(Destinations.PRODUCT_DETAILS.replace("{productId}", productId.toString()))
                         },
                         onNavigateToAddProduct = {
-                            navController.navigate("add-product")
+                            navController.navigate(Destinations.ADD_PRODUCT)
                         }
                     )
                 }
@@ -164,7 +172,7 @@ fun StockMateNavigation() {
                             navController.popBackStack()
                         },
                         onNavigateToEdit = {
-                            navController.navigate("edit-product/${productId}")
+                            navController.navigate(Destinations.EDIT_PRODUCT.replace("{productId}", productId.toString()))
                         },
                         onTitleUpdate = onTitleUpdate,
                         onActionsUpdate = onActionsUpdate
@@ -241,6 +249,36 @@ fun StockMateNavigation() {
                         viewModel = viewModel,
                         onNavigateBack = {
                             navController.popBackStack()
+                        }
+                    )
+                }
+
+                composable(
+                    route = Destinations.DISH_INVENTORY
+                ) {
+                    val viewModel: DishInventoryViewModel = hiltViewModel()
+
+                    DishInventoryScreen(
+                        viewModel = viewModel,
+                        onDishClick = { dishId ->
+                            navController.navigate(Destinations.DISH_DETAILS.replace("{dishId}", dishId.toString()))
+                        },
+                        onNewDishClick = {
+                            navController.navigate(Destinations.ADD_DISH)
+                        }
+                    )
+                }
+
+                composable(
+                    route = Destinations.DISH_DETAILS,
+                    arguments = listOf(navArgument("dishId") { type = NavType.LongType })
+                ) {
+                    val viewModel: DishDetailsViewModel = hiltViewModel()
+
+                    DishDetailsScreen(
+                        viewModel = viewModel,
+                        onEditDishClick = { dishId ->
+                            navController.navigate(Destinations.EDIT_DISH.replace("{dishId}", dishId.toString()))
                         }
                     )
                 }

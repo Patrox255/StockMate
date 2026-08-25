@@ -1,5 +1,6 @@
 package com.example.stockmate.data.validationUtil
 
+import android.util.Log
 import androidx.compose.ui.text.MultiParagraph
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -9,7 +10,8 @@ import kotlin.collections.set
 
 typealias formErrors<fieldsType> = Map<FieldErrorKey<fieldsType>, MutableList<String>>
 typealias formErrorsSingleForm<fieldsType> = Map<fieldsType, MutableList<String>>
-typealias validationFuns<T> = Map<T, List<(String) -> String?>>
+typealias ValidationRule = (Any?) -> String?
+typealias validationFuns<T> = Map<T, List<ValidationRule>>
 
 data class FieldErrorKey<TField>(
     // Should be null in case of not handling a list of items but a single form
@@ -19,7 +21,7 @@ data class FieldErrorKey<TField>(
 
 data class ValidatableItem<TField>(
     val id: String,
-    val fields: Map<TField, String>
+    val fields: Map<TField, Any?>
 )
 
 class FormValidator<TField : Enum<TField>>(
@@ -33,7 +35,7 @@ class FormValidator<TField : Enum<TField>>(
     val errors: StateFlow<formErrors<TField>> = _errors.asStateFlow()
     val error = _error.asStateFlow()
 
-    private fun validateField(field: TField, value: String): List<String> {
+    private fun validateField(field: TField, value: Any?): List<String> {
         return validationFuns[field]
             ?.mapNotNull { rule -> rule(value) }
             ?: emptyList()
@@ -42,7 +44,7 @@ class FormValidator<TField : Enum<TField>>(
     fun validateField(
         itemId: String?,
         field: TField,
-        value: String
+        value: Any?
     ) {
         _errors.update { currentErrors ->
             val errors = validateField(field, value)
@@ -66,7 +68,7 @@ class FormValidator<TField : Enum<TField>>(
     }
 
     private fun validateItemFields(
-        fields: Map<TField, String>,
+        fields: Map<TField, Any?>,
         errorMsgGenerator: (field: TField) -> String = { "Missing field ${it}" },
         fieldErrorKeyGenerator: (field: TField) -> FieldErrorKey<TField> = { FieldErrorKey(null, it) },
     ): Map<FieldErrorKey<TField>, MutableList<String>> {
@@ -76,7 +78,7 @@ class FormValidator<TField : Enum<TField>>(
             if (!fields.containsKey(entry))
                 throw Error(errorMsgGenerator(entry))
             val value = fields[entry]
-            val fieldErrors = validateField(entry, value ?: "")
+            val fieldErrors = validateField(entry, value)
             if (fieldErrors.isNotEmpty()) {
                 errors[fieldErrorKeyGenerator(entry)] = fieldErrors.toMutableList()
             }
@@ -100,6 +102,7 @@ class FormValidator<TField : Enum<TField>>(
                     fieldErrorKeyGenerator = { FieldErrorKey(item.id, it) }
                 )
             )
+            Log.d("FormValidator", "Validated item with id ${item.id}, errors: ${errors.filterKeys { it.itemId == item.id }}, itemFields: $itemFields")
         }
 
         _errors.value = errors
@@ -112,7 +115,7 @@ class FormValidator<TField : Enum<TField>>(
         return true
     }
 
-    fun validateSingleForm(fields: Map<TField, String>): Boolean {
+    fun validateSingleForm(fields: Map<TField, Any?>): Boolean {
         _error.value = null
         val errors = validateItemFields(fields)
 

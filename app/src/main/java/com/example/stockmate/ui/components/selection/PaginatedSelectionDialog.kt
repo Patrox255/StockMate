@@ -1,9 +1,7 @@
 package com.example.stockmate.ui.components.selection
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,17 +17,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.stockmate.ui.state.selection.PaginatedSelectionState
+import com.example.stockmate.ui.components.GenericErrorMessage
+import com.example.stockmate.ui.components.search.NoItemsFoundMessage
+import com.example.stockmate.ui.state.pagination.PaginatedState
 
 @Composable
 fun <T> PaginatedSelectionDialog(
-    state: PaginatedSelectionState<T>,
+    state: PaginatedState<T>,
     onSearchQueryChanged: (String) -> Unit,
     onPageSelected: (Int) -> Unit,
     onItemSelected: (T) -> Unit,
     itemLabel: (T) -> String,
     onDismissRequest: () -> Unit,
-    dialogHeaderText: String = "Select"
+    dialogHeaderText: String = "Select",
+    noItemsFoundMsg: String = "No items found",
+    itemKeyGenerator: ((T) -> Any)? = null
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -54,30 +56,44 @@ fun <T> PaginatedSelectionDialog(
                     modifier = Modifier.height(8.dp)
                 )
 
-                if (state.isLoading) {
-                    CircularProgressIndicator()
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(350.dp)
-                    ) {
-                        items(
-                            items = state.items
-                        ) { item ->
-                            Text(
-                                text = itemLabel(item),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onItemSelected(item)
-                                    }
-                                    .padding(
-                                        horizontal = 12.dp,
-                                        vertical = 12.dp
-                                    )
-                            )
-                            HorizontalDivider()
+                when {
+                    state.isLoading -> {
+                        CircularProgressIndicator()
+                    }
+                    state.error != null -> {
+                        GenericErrorMessage(
+                            errorMessage = state.error
+                        )
+                    }
+                    state.items.isEmpty() -> {
+                        NoItemsFoundMessage(
+                            msg = noItemsFoundMsg
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(350.dp)
+                        ) {
+                            items(
+                                items = state.items,
+                                key = itemKeyGenerator
+                            ) { item ->
+                                Text(
+                                    text = itemLabel(item),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onItemSelected(item)
+                                        }
+                                        .padding(
+                                            horizontal = 12.dp,
+                                            vertical = 12.dp
+                                        )
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }

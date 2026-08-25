@@ -6,6 +6,7 @@ import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Update
 import com.example.stockmate.data.entity.ProductMultiplier
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ProductMultiplierDao {
@@ -17,6 +18,9 @@ interface ProductMultiplierDao {
 
     @Query("SELECT * FROM product_multipliers WHERE productId = :productId ORDER BY sortOrder ASC")
     suspend fun getMultipliersByProductId(productId: Long): List<ProductMultiplier>
+
+    @Query("SELECT * FROM product_multipliers WHERE productId = :productId ORDER BY sortOrder ASC")
+    fun getMultipliersByProductIdFlow(productId: Long): Flow<List<ProductMultiplier>>
 
     @Query("DELETE FROM product_multipliers WHERE productId IN (:productIds)")
     suspend fun deleteMultipliersByProductIds(productIds: List<Long>)

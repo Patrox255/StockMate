@@ -107,6 +107,15 @@ fun IngredientCard(
                     modifier = Modifier.fillMaxWidth(),
                     errorMessages = validationErrors[DishFormViewModel.AddIngredientFormField.AMOUNT] ?: emptyList()
                 )
+
+                if (uiModel.amountText.isNotBlank()) {
+                    Text(
+                        text = "Preview: ${uiModel.amountText}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, start = 8.dp)
+                    )
+                }
             }
         } else {
             Row(

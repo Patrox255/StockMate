@@ -9,5 +9,6 @@ data class Dish(
     val id: Long = 0,
     val name: String,
     val description: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val imagePath: String? = null
 )

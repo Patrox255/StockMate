@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.dtos.ProductUiModel
+import com.example.stockmate.ui.components.navigation.AddNewFloatingBtn
 import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
 import com.example.stockmate.ui.components.product.ProductPredictionBadge
@@ -56,11 +57,10 @@ fun InventoryScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onNavigateToAddProduct() }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add a new product")
-            }
+            AddNewFloatingBtn(
+                onClick = { onNavigateToAddProduct() },
+                contentDescription = "Add a new product"
+            )
         }
     ) { innerPadding ->
         Column(

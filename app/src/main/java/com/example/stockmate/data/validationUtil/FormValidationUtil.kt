@@ -1,5 +1,7 @@
 package com.example.stockmate.data.validationUtil
 
+import android.util.Log
+
 typealias ValidatorGenerator = (genData: ValidatorGeneratorData) -> ((String) -> String?)
 
 data class ValidatorGeneratorData(
@@ -9,44 +11,71 @@ data class ValidatorGeneratorData(
 object FormValidationUtil {
     val floatRegex = """^-?\d+(\.\d+)?$""".toRegex()
 
-    fun validateFloat(data: ValidatorGeneratorData = ValidatorGeneratorData()): (String) -> String?
+    // This function helps to create rules for specific types, throwing an exception if the value
+    // is not of the expected type, which then has to be handled by the rule.
+    private inline fun <reified T> typedRule(
+        typeErrorMessage: String = "Invalid value type provided for the field.",
+        crossinline initialStringTransformation: (String) -> T? = { value -> value as? T },
+        crossinline rule: (T?) -> String?,
+    ) : ValidationRule = { value ->
+        when {
+            value == null -> rule(null)
+            value is T -> rule(value)
+            value is String -> {
+                val transformedVal = initialStringTransformation(value)
+                if (transformedVal is T) {
+                    rule(transformedVal)
+                } else {
+                    typeErrorMessage
+                }
+            }
+            else -> typeErrorMessage
+        }
+    }
+    fun validateFloat(data: ValidatorGeneratorData = ValidatorGeneratorData()): ValidationRule
     {
-        return { value ->
-            if (!value.matches(floatRegex)) {
-                data.customErrorMessage ?: "Must be a valid decimal number (e.g., 12.34)"
+        val errorMsg = data.customErrorMessage ?: "Must be a valid decimal number (e.g., 12.34)"
+        return typedRule<String>(errorMsg) { value ->
+            if (value == null || !value.matches(floatRegex)) {
+                errorMsg
             } else {
                 null
             }
         }
     }
 
-    fun stringNotBlank(data: ValidatorGeneratorData = ValidatorGeneratorData()): (String) -> String?
+    fun stringNotBlank(data: ValidatorGeneratorData = ValidatorGeneratorData()): ValidationRule
     {
-        return { value ->
-            if (value.isBlank()) {
-                data.customErrorMessage ?: "Can't be empty!"
+        val errorMsg = data.customErrorMessage ?: "Can't be empty!"
+        return typedRule<String>(errorMsg) { value ->
+            if (value == null || value.isBlank()) {
+                errorMsg
             } else {
                 null
             }
         }
     }
 
-    fun objectNotNull(data: ValidatorGeneratorData = ValidatorGeneratorData()): (Any?) -> String?
+    fun objectNotNull(data: ValidatorGeneratorData = ValidatorGeneratorData()): ValidationRule
     {
-        return { value ->
+        val errorMsg = data.customErrorMessage ?: "Must be selected!"
+        return typedRule<Any?>(errorMsg) { value ->
             if (value == null) {
-                data.customErrorMessage ?: "Must be selected!"
+                errorMsg
             } else {
                 null
             }
         }
     }
 
-    fun doubleGreaterThan(data: ValidatorGeneratorData = ValidatorGeneratorData(), threshold: Double): (String) -> String? {
-        return { value ->
-            val doubleValue = value.toDoubleOrNull()
-            if (doubleValue == null || doubleValue <= threshold) {
-                data.customErrorMessage ?: "Must be greater than $threshold"
+    fun doubleGreaterThan(data: ValidatorGeneratorData = ValidatorGeneratorData(), threshold: Double): ValidationRule {
+        val errorMsg = data.customErrorMessage ?: "Must be greater than $threshold"
+        return typedRule<Double>(
+            typeErrorMessage = errorMsg,
+            initialStringTransformation = { value -> value.replace(",", ".").toDoubleOrNull() }
+        ) { value ->
+            if (value == null || value <= threshold) {
+                errorMsg
             } else {
                 null
             }

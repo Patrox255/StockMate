@@ -1,6 +1,6 @@
-package com.example.stockmate.ui.state.selection
+package com.example.stockmate.ui.state.pagination
 
-data class PaginatedSelectionState<T>(
+data class PaginatedState<T>(
     val items: List<T> = emptyList(),
     val currentPage: Int = 0,
     val totalPages: Int = 0,

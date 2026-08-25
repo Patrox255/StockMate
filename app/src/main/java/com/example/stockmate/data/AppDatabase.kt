@@ -22,7 +22,7 @@ import com.example.stockmate.data.entity.StockLog
         Dish::class,
         DishIngredient::class
    ],
-    version = 9,
+    version = 11,
     exportSchema = false
 )
 @ColumnTypeConverters(Converters::class)

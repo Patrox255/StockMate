@@ -1,5 +1,6 @@
 package com.example.stockmate.ui.components.img
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -48,7 +49,8 @@ fun ImgDisplay(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = combinedImgModifier
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Icon(
                 imageVector = Icons.Default.AddPhotoAlternate,

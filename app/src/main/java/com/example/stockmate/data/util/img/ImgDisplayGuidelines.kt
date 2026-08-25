@@ -42,3 +42,20 @@ object ProductImgDisplayGuidelines {
             .clip(RoundedCornerShape(8.dp)),
     )
 }
+
+object DishImgDisplayGuidelines {
+    val DishListItem = ImgDisplayGuidelines(
+        contentScale = ContentScale.Crop,
+        imgModifier = Modifier.size(80.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        iconModifier = Modifier.size(48.dp),
+        noImageNotificationVisible = true,
+    )
+    val DishDetails = ImgDisplayGuidelines(
+        contentScale = ContentScale.Fit,
+        imgModifier = Modifier.size(200.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        iconModifier = Modifier.size(64.dp),
+        noImageNotificationVisible = true,
+    )
+}

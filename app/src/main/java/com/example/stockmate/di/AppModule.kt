@@ -1,6 +1,7 @@
 package com.example.stockmate.di
 
 import android.content.Context
+import androidx.room3.Database
 import androidx.room3.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.example.stockmate.data.AppDatabase
@@ -10,6 +11,7 @@ import com.example.stockmate.data.dao.ProductMultiplierDao
 import com.example.stockmate.data.dao.StockLogDao
 import com.example.stockmate.data.repository.DishRepository
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.seeder.DatabaseSeeder
 import com.example.stockmate.data.util.img.ImageStorage
 import dagger.Module
 import dagger.Provides
@@ -65,9 +67,11 @@ class AppModule {
     @Provides
     @Singleton
     fun provideDishRepository(
-        dishDao: DishDao
+        dishDao: DishDao,
+        appDatabase: AppDatabase
     ) = DishRepository(
-        dishDao
+        dishDao,
+        appDatabase
     )
 
     @Provides
@@ -75,4 +79,18 @@ class AppModule {
     fun provideImageStorage(
         @ApplicationContext context: Context
     ): ImageStorage = ImageStorage(context)
+
+    @Provides
+    @Singleton
+    fun provideDatabaseSeeder(
+        productMultiplierDao: ProductMultiplierDao,
+        stockLogDao: StockLogDao,
+        productDao: ProductDao,
+        dishDao: DishDao
+    ) = DatabaseSeeder(
+        productMultiplierDao,
+        stockLogDao,
+        productDao,
+        dishDao
+    )
 }
