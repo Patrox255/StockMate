@@ -35,6 +35,7 @@ import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.img.ImgDisplay
 import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
+import com.example.stockmate.data.util.formatting.toCleanString
 
 @Composable
 fun InventoryScreenProductItem(
@@ -81,13 +82,13 @@ fun InventoryScreenProductItem(
                     val isLowStock = product.currentStock < product.targetStock
                     Row {
                         Text(
-                            text = "Stock: ${product.currentStock}",
+                            text = "Stock: ${product.currentStock.toCleanString()}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isLowStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = " / ${product.targetStock} ${product.unit}",
+                            text = " / ${product.targetStock.toCleanString()} ${product.unit}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -8,6 +8,7 @@ import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.prediction.ConsumptionPredictionEngine
 import com.example.stockmate.data.prediction.SettingsRepository
 import com.example.stockmate.data.repository.ProductRepository
+import com.example.stockmate.data.util.pagination.SearchEnginePaginationManager
 import com.example.stockmate.data.util.product.ProductStockManager
 import com.example.stockmate.data.util.search.FilterGroup
 import com.example.stockmate.data.util.search.FilterOption
@@ -16,7 +17,11 @@ import com.example.stockmate.data.util.search.SingleSelectFilterGroup
 import com.example.stockmate.data.util.search.SortOption
 import com.example.stockmate.ui.state.prediction.PredictionUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,6 +35,7 @@ class InventoryViewModel @Inject constructor (
     companion object {
         const val DEBOUNCE_DELAY_SECONDS = 0.3
         const val SEARCH_STOP_TIMEOUT_SECONDS = 5
+        const val PAGE_SIZE = 20
     }
 
     val availableSorts = listOf(
@@ -104,14 +110,26 @@ class InventoryViewModel @Inject constructor (
         }
     }
 
-    val displayedProducts = listEngine.process(
-        sourceFlow = productsSourceFlow,
-        scope = viewModelScope
+    val paginationManager = SearchEnginePaginationManager(
+        searchEngine = listEngine,
+        scope = viewModelScope,
+        pageSize = PAGE_SIZE,
+        errorLoadingItemsMessage = "Failed to load products"
     )
+
+    init {
+        paginationManager.initialize(productsSourceFlow)
+    }
+
+    val paginationState = paginationManager.state
 
     fun onReasonSelected(reason: ChangeReason) {
         viewModelScope.launch {
             productStockManager.StockAdjustmentDialogOnReasonSelected(reason)
         }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        paginationManager.updateSearchQuery(query)
     }
 }

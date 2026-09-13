@@ -10,4 +10,12 @@ fun Double.toCleanString(): String {
     return format.format(this)
 }
 
-fun Float.toCLeanString(): String = this.toDouble().toCleanString()
+fun Float.toCleanString(): String = this.toDouble().toCleanString()
+
+fun String.toFloatOrZero(): Float {
+    return this.replace(",", ".").toFloatOrNull() ?: 0f
+}
+
+fun String.toFloatOrNullWithCommaSupport(): Float? {
+    return this.replace(",", ".").toFloatOrNull()
+}

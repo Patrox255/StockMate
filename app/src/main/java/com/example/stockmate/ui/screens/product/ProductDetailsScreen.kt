@@ -27,6 +27,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.stockmate.data.chart.StockChartManagerSettings
 import com.example.stockmate.data.chart.StockChartProductsFilterMode
 import com.example.stockmate.data.entity.ProductWithMultipliers
+import com.example.stockmate.data.util.formatting.toCleanString
 import com.example.stockmate.data.util.img.ProductImgDisplayGuidelines
 import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.chart.StockLogHistoryChart
@@ -138,11 +139,11 @@ fun ProductDetailsTopContent(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "${product.currentStock} ${product.unit}",
+                text = "${product.currentStock.toCleanString()} ${product.unit}",
                 style = MaterialTheme.typography.displayMedium
             )
             Text(
-                text = "Goal: ${product.targetStock} ${product.unit}",
+                text = "Goal: ${product.targetStock.toCleanString()} ${product.unit}",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -183,7 +184,7 @@ fun ProductDetailsContent(
     val chartSeriesAdditionalRenderInfo by productLogsChartViewModel.chartSeriesAdditionalRenderInfo.collectAsState()
     val chartSeriesStartTime by productLogsChartViewModel.startTime.collectAsState()
 
-    var inputText by remember { mutableStateOf(product.currentStock.toString()) }
+    var inputText by remember { mutableStateOf(product.currentStock.toCleanString()) }
     var selectedMultiplier by remember { mutableStateOf(multipliers.firstOrNull()) }
     val sliderMax = if (product.targetStock > 0) product.targetStock * 4 else 100f
     var sliderPosition by remember { mutableFloatStateOf(product.currentStock) }
@@ -192,11 +193,10 @@ fun ProductDetailsContent(
     val pendingDifference by viewModel.productStockManager.pendingDifference.collectAsState()
 
     LaunchedEffect(product.currentStock) {
-        inputText = product.currentStock.toString()
+        inputText = product.currentStock.toCleanString()
     }
 
     LaunchedEffect(productWithMultipliers.product.id) {
-        Log.d("ProductDetailsContent", "Setting chart settings for product ID: ${productWithMultipliers.product.id}")
         productLogsChartViewModel.setChartSettings(StockChartManagerSettings(
             includedOrExcludedProductsIds = listOf(productWithMultipliers.product.id),
             filterMode = StockChartProductsFilterMode.INCLUDE
@@ -249,7 +249,7 @@ fun ProductDetailsContent(
                 ) {
                     OutlinedTextField(
                         value = inputText,
-                        onValueChange = { inputText = it },
+                        onValueChange = { inputText = it.replace("-", "") },
                         label = { Text("Set stock to:") },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,
@@ -261,10 +261,10 @@ fun ProductDetailsContent(
                                 if (!focusState.isFocused) {
                                     val typedValue = inputText.toFloatOrNull()
                                     if (typedValue != null && typedValue != product.currentStock) {
-                                        viewModel.productStockManager.pendingDifferenceUpdate(typedValue - product.currentStock)
+                                        viewModel.startProductStockChange(product, typedValue - product.currentStock)
                                         viewModel.productStockManager.showDialogUpdate(true)
                                     } else {
-                                        inputText = product.currentStock.toString()
+                                        inputText = product.currentStock.toCleanString()
                                     }
                                 }
                             },
@@ -283,12 +283,12 @@ fun ProductDetailsContent(
                             sliderPosition = it
                             val roundedVal = (it * 10f).roundToInt() / 10f
                             sliderPosition = roundedVal
-                            inputText = roundedVal.toString()
+                            inputText = roundedVal.toCleanString()
                         },
                         onValueChangeFinished = {
                             if (sliderPosition != product.currentStock) {
                                 val roundedVal = (sliderPosition * 10f).roundToInt() / 10f
-                                viewModel.productStockManager.pendingDifferenceUpdate(roundedVal - product.currentStock)
+                                viewModel.startProductStockChange(product, roundedVal - product.currentStock)
                                 viewModel.productStockManager.showDialogUpdate(true)
                             }
                         },

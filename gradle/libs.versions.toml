@@ -22,6 +22,7 @@ cameraCamera2Pipe = "1.6.1"
 desugar = "2.1.5"
 datastore-preferences = "1.2.1"
 vico-charts = "3.2.3"
+google-fonts = "1.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +61,7 @@ desugar = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desuga
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore-preferences" }
 vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico-charts" }
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico-charts" }
+google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts", version.ref = "google-fonts" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

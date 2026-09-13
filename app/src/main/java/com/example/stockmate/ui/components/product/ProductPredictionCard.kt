@@ -68,7 +68,7 @@ fun ProductPredictionCard(
                     val daysText = if (prediction.predictedDaysUntilEmpty.isInfinite()) {
                         "No usage detected"
                     } else {
-                        "approx. ${prediction.predictedDaysUntilEmpty.toInt()} days"
+                        "approx. ${prediction.predictedDaysUntilEmpty.toInt()} ${if (prediction.predictedDaysUntilEmpty.toInt() == 1) "day" else "days"}"
                     }
 
                     Row(

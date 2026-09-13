@@ -62,7 +62,10 @@ fun DishInventoryScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (state.items.isEmpty()) {
+            if (state.isLoading) {
+                LoadingIndicator()
+            }
+            else if (state.items.isEmpty()) {
                 NoItemsFoundMessage(
                     msg = if (state.searchQuery.isNotBlank()) {
                         "No dishes match your search"
@@ -70,9 +73,8 @@ fun DishInventoryScreen(
                         "No dishes found"
                     },
                 )
-            } else if (state.isLoading) {
-                LoadingIndicator()
-            } else {
+            }
+            else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)

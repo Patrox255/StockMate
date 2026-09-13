@@ -1,5 +1,6 @@
 package com.example.stockmate.data.util.product
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.entity.Product
@@ -60,5 +61,9 @@ class ProductStockManager @Inject constructor(
 
     fun pendingDifferenceUpdate(value: Float) {
         _pendingDifference.value = value
+    }
+
+    fun productUpdate(product: Product?) {
+        _pendingProduct.value = product
     }
 }

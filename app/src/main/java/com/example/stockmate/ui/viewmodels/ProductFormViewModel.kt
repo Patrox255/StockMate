@@ -88,7 +88,11 @@ class ProductFormViewModel @Inject constructor (
             MultiplierFormField.VALUE to listOf(
                 FormValidationUtil.validateFloat(ValidatorGeneratorData(
                     customErrorMessage = "Multiplier value must be a valid number!"
-                ))
+                )),
+                FormValidationUtil.floatGreaterOrEqualThan(ValidatorGeneratorData(
+                    customErrorMessage = "Multiplier value must be greater than or equal to 0!"),
+                    threshold = 0f
+                )
             )
         )
     )
@@ -199,17 +203,7 @@ class ProductFormViewModel @Inject constructor (
                 AddProductFormField.UNIT to current.unit
             )
         )
-        val areMultipliersValid = multiplierValidator.validateItems(
-            current.multipliers.map { multiplier ->
-                ValidatableItem(
-                    id = multiplier.localId,
-                    fields = mapOf(
-                        MultiplierFormField.NAME to multiplier.name,
-                        MultiplierFormField.VALUE to multiplier.value
-                    )
-                )
-            }
-        )
+        val areMultipliersValid = validateMultipliers(current)
         if (!isProductFormValid || !areMultipliersValid) {
             if (!areMultipliersValid) {
                 productValidator.setGlobalError("Please fix the errors in the multipliers section.")
@@ -242,6 +236,18 @@ class ProductFormViewModel @Inject constructor (
         }
     }
 
+    private fun validateMultipliers(current: AddProductFormState): Boolean = multiplierValidator.validateItems(
+        current.multipliers.map { multiplier ->
+            ValidatableItem(
+                id = multiplier.localId,
+                fields = mapOf(
+                    MultiplierFormField.NAME to multiplier.name,
+                    MultiplierFormField.VALUE to multiplier.value
+                )
+            )
+        }
+    )
+
     fun getProductWithMultipliersForPreview(): ProductWithMultipliers {
         val current = _formState.value
         val product = current.toProduct(
@@ -256,40 +262,40 @@ class ProductFormViewModel @Inject constructor (
         )
     }
 
+    private fun changeMultipliers(changeFn: (AddProductFormState) -> List<MultiplierFormState>) {
+        _formState.update { state ->
+            val updatedMultipliers = changeFn(state)
+            state.copy(multipliers = updatedMultipliers)
+        }
+        validateMultipliers(_formState.value)
+    }
+
     fun addEmptyMultiplier() {
-        _formState.update {state ->
+        changeMultipliers { state ->
             val newMultiplier = MultiplierFormState()
-            state.copy(multipliers = state.multipliers + newMultiplier)
+            state.multipliers + newMultiplier
         }
     }
 
     fun updateMultiplier(localId: String, name: String, value: String) {
-        _formState.update {state ->
-            val updatedMultipliers = state.multipliers.map {multiplier ->
-                if (multiplier.localId == localId)
-                    multiplier.copy(name = name, value = value)
-                else
-                    multiplier
-            }
-            state.copy(multipliers = updatedMultipliers)
-        }
+        onMultiplierFieldChanged(localId, MultiplierFormField.NAME, name)
+        onMultiplierFieldChanged(localId, MultiplierFormField.VALUE, value)
     }
 
     fun removeMultiplier(localId: String) {
-        _formState.update {state ->
-            val updatedMultipliers = state.multipliers.filter {multiplier ->
+        changeMultipliers { state ->
+            state.multipliers.filter { multiplier ->
                 multiplier.localId != localId
             }
-            state.copy(multipliers = updatedMultipliers)
         }
     }
 
     fun moveMultiplier(fromIndex: Int, toIndex: Int) {
-        _formState.update { state ->
+        changeMultipliers { state ->
             val multipliers = state.multipliers.toMutableList()
             val multiplierToMove = multipliers.removeAt(fromIndex)
             multipliers.add(toIndex, multiplierToMove)
-            state.copy(multipliers = multipliers)
+            multipliers
         }
     }
 

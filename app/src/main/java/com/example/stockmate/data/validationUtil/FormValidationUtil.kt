@@ -81,4 +81,18 @@ object FormValidationUtil {
             }
         }
     }
+
+    fun floatGreaterOrEqualThan(data: ValidatorGeneratorData = ValidatorGeneratorData(), threshold: Float): ValidationRule {
+        val errorMsg = data.customErrorMessage ?: "Must be greater than $threshold"
+        return typedRule<Float>(
+            typeErrorMessage = errorMsg,
+            initialStringTransformation = { value -> value.replace(",", ".").toFloatOrNull() }
+        ) { value ->
+            if (value == null || value < threshold) {
+                errorMsg
+            } else {
+                null
+            }
+        }
+    }
 }

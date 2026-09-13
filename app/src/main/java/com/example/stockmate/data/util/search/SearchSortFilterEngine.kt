@@ -71,6 +71,11 @@ data class MultiSelectFilterGroup<T>(
     }
 }
 
+data class SearchResult<T>(
+    val items: List<T>,
+    val query: String
+)
+
 @OptIn(FlowPreview::class)
 class SearchSortFilterEngine<T>(
     initialFilterGroups: List<FilterGroup<T>>,
@@ -89,7 +94,7 @@ class SearchSortFilterEngine<T>(
     val filterGroups = _filterGroups.asStateFlow()
     val activeSorts = _activeSorts.asStateFlow()
 
-    fun process(sourceFlow: Flow<List<T>>, scope: CoroutineScope): StateFlow<List<T>> {
+    fun process(sourceFlow: Flow<List<T>>, scope: CoroutineScope): StateFlow<SearchResult<T>> {
         return combine(
             sourceFlow,
             _activeSorts,
@@ -119,11 +124,14 @@ class SearchSortFilterEngine<T>(
                 combinedComparator?.let { result = result.sortedWith(it) }
             }
 
-            result
+            SearchResult(
+                items = result,
+                query = query
+            )
         }.stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis),
-            initialValue = emptyList()
+            initialValue = SearchResult(items = emptyList(), query = "")
         )
     }
 

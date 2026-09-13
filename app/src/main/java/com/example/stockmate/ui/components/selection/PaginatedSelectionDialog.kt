@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.ui.components.GenericErrorMessage
+import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.search.NoItemsFoundMessage
 import com.example.stockmate.ui.state.pagination.PaginatedState
 
@@ -58,7 +59,7 @@ fun <T> PaginatedSelectionDialog(
 
                 when {
                     state.isLoading -> {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                     state.error != null -> {
                         GenericErrorMessage(

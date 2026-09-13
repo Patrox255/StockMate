@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.dtos.ProductUiModel
+import com.example.stockmate.ui.components.LoadingIndicator
 import com.example.stockmate.ui.components.navigation.AddNewFloatingBtn
 import com.example.stockmate.ui.components.product.InventoryScreenProductItem
 import com.example.stockmate.ui.components.product.ProductNoMultipliersConfiguredMessage
@@ -40,6 +41,7 @@ import com.example.stockmate.ui.components.product.SelectStockAdjustmentReasonDi
 import com.example.stockmate.ui.components.product.StockAdjustmentControls
 import com.example.stockmate.ui.components.search.FilterSortBar
 import com.example.stockmate.ui.components.search.SearchBar
+import com.example.stockmate.ui.components.selection.PaginationBar
 import com.example.stockmate.ui.viewmodels.InventoryViewModel
 
 @Composable
@@ -48,7 +50,7 @@ fun InventoryScreen(
     onNavigateToDetails: (productId: Long) -> Unit,
     onNavigateToAddProduct: () -> Unit
 ) {
-    val products = viewModel.displayedProducts.collectAsState().value
+    val paginationState by viewModel.paginationState.collectAsState()
     val activeSorts by viewModel.listEngine.activeSorts.collectAsState()
     val filterGroups by viewModel.listEngine.filterGroups.collectAsState()
     val searchQuery by viewModel.listEngine.searchQuery.collectAsState()
@@ -71,7 +73,7 @@ fun InventoryScreen(
             SearchBar(
                 query = searchQuery,
                 onQueryChange = { query ->
-                    viewModel.listEngine.updateSearchQuery(query)
+                    viewModel.onSearchQueryChanged(query)
                 },
                 placeholder = "Search products by name..."
             )
@@ -84,7 +86,10 @@ fun InventoryScreen(
                 availableSorts = viewModel.availableSorts
             )
 
-            if (products.isEmpty()) {
+            if (paginationState.isLoading) {
+                LoadingIndicator()
+            }
+            else if (paginationState.items.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -124,7 +129,7 @@ fun InventoryScreen(
                         .weight(1f),
                     contentPadding = PaddingValues(16.dp)
                 ) {
-                    items(products) { product ->
+                    items(paginationState.items) { product ->
                         ProductItem(
                             productUiModel = product,
                             viewModel = viewModel,
@@ -134,6 +139,12 @@ fun InventoryScreen(
                     }
                 }
             }
+
+            PaginationBar(
+                currentPage = paginationState.currentPage,
+                visiblePages = paginationState.visiblePages,
+                onPageSelected = { viewModel.paginationManager.goToPage(it) }
+            )
         }
     }
 

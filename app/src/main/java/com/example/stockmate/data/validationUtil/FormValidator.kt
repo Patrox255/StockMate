@@ -102,7 +102,6 @@ class FormValidator<TField : Enum<TField>>(
                     fieldErrorKeyGenerator = { FieldErrorKey(item.id, it) }
                 )
             )
-            Log.d("FormValidator", "Validated item with id ${item.id}, errors: ${errors.filterKeys { it.itemId == item.id }}, itemFields: $itemFields")
         }
 
         _errors.value = errors

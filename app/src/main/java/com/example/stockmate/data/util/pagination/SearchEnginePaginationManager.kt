@@ -1,6 +1,7 @@
 package com.example.stockmate.data.util.pagination
 
 import android.util.Log
+import com.example.stockmate.data.util.search.SearchResult
 import com.example.stockmate.data.util.search.SearchSortFilterEngine
 import com.example.stockmate.ui.state.pagination.PaginatedState
 import kotlinx.coroutines.CancellationException
@@ -27,13 +28,14 @@ class SearchEnginePaginationManager<T>(
     // when the search query is updated.
     private var pendingPageReset = false
 
-    lateinit var allItems: StateFlow<List<T>>
+    lateinit var allItems: StateFlow<SearchResult<T>>
         private set
 
     fun initialize(source: Flow<List<T>>) {
         sourceJob?.cancel()
 
         _state.value = PaginatedState(
+            items = emptyList(),
             isLoading = true,
             error = null
         )
@@ -42,9 +44,9 @@ class SearchEnginePaginationManager<T>(
 
         sourceJob = scope.launch {
             try {
-                allItems.collect { items ->
-//                    delay(5000)
-                    updateStateForItems(items)
+                allItems.collect { result ->
+                    if (result.query == _state.value.searchQuery)
+                        updateStateForItems(result.items)
                 }
                 // Due to cancelling the job when the source is re-initialized,
                 // we can ignore the cancellation exception here.
@@ -52,6 +54,7 @@ class SearchEnginePaginationManager<T>(
             catch (e: Exception) {
                 Log.e("PaginatedSelectionManager", "Error loading items: ${e.message}", e)
                 _state.value = _state.value.copy(
+                    items = emptyList(),
                     isLoading = false,
                     error = errorLoadingItemsMessage
                 )
@@ -84,6 +87,7 @@ class SearchEnginePaginationManager<T>(
     }
 
     fun updateSearchQuery(query: String) {
+        pendingPageReset = true
         searchEngine.updateSearchQuery(query)
         _state.value = _state.value.copy(
             searchQuery = query,
@@ -94,7 +98,7 @@ class SearchEnginePaginationManager<T>(
     }
     fun goToPage(page: Int) {
         if (!::allItems.isInitialized) return
-        val totalPages = calculateTotalPages(allItems.value.size)
+        val totalPages = calculateTotalPages(allItems.value.items.size)
         if (page in 0 until totalPages) {
             updatePage(page)
         }
@@ -117,7 +121,7 @@ class SearchEnginePaginationManager<T>(
 
         _state.value = _state.value.copy(
             currentPage = page,
-            items = getPageItems(items, page),
+            items = getPageItems(items.items, page),
             visiblePages = calculateVisiblePages(
                 currentPage = page,
                 totalPages = _state.value.totalPages

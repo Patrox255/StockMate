@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.compose.AppTheme
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.seeder.DatabaseSeeder
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            AppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

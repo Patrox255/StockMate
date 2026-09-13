@@ -11,6 +11,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.dtos.MultiplierFormState
+import com.example.stockmate.data.validationUtil.FieldErrorKey
 import com.example.stockmate.data.validationUtil.formErrors
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
 import sh.calvin.reorderable.ReorderableColumn
@@ -51,7 +52,8 @@ fun ProductMultipliersManageFormSection(
                             }
                         ),
                         onUpdateMultiplier = onUpdateMultiplier,
-                        onRemoveMultiplier = onRemoveMultiplier
+                        onRemoveMultiplier = onRemoveMultiplier,
+                        multipliersErrors = multipliersErrors
                     )
                 }
             }

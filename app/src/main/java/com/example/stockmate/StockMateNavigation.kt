@@ -4,6 +4,7 @@ import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.RestaurantMenu
@@ -36,6 +37,7 @@ import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
 import com.example.stockmate.ui.screens.settings.SettingsScreen
+import com.example.stockmate.ui.screens.stock.AutoConsumptionScreen
 import com.example.stockmate.ui.viewmodels.InventoryViewModel
 import com.example.stockmate.ui.viewmodels.ProductDetailsViewModel
 import com.example.stockmate.ui.viewmodels.ProductFormViewModel
@@ -44,6 +46,7 @@ import com.example.stockmate.ui.viewmodels.chart.StockLogChartViewModel
 import com.example.stockmate.ui.viewmodels.dish.DishDetailsViewModel
 import com.example.stockmate.ui.viewmodels.dish.DishFormViewModel
 import com.example.stockmate.ui.viewmodels.dish.DishInventoryViewModel
+import com.example.stockmate.ui.viewmodels.stock.AutoConsumptionViewModel
 
 object Destinations {
     const val INVENTORY = "inventory"
@@ -56,6 +59,7 @@ object Destinations {
     const val EDIT_DISH = "edit-dish/{dishId}"
     const val DISH_INVENTORY = "dish-inventory"
     const val DISH_DETAILS = "dish-details/{dishId}"
+    const val AUTO_CONSUMPTION = "auto-consumption"
 }
 
 fun destinationToHeader(destination: String?): String {
@@ -69,6 +73,7 @@ fun destinationToHeader(destination: String?): String {
         Destinations.EDIT_DISH -> "Edit Dish"
         Destinations.DISH_INVENTORY -> "Dishes"
         Destinations.DISH_DETAILS -> "Dish Details"
+        Destinations.AUTO_CONSUMPTION -> "Auto Deductions"
         else -> "StockMate"
     }
 }
@@ -103,6 +108,13 @@ fun StockMateNavigation() {
                 {
                     IconButton(onClick = { navController.navigate(Destinations.STOCK_LOG_CHART) }) {
                         Icon(Icons.Default.BarChart, contentDescription = "Analytics")
+                    }
+                    IconButton(onClick = {navController.navigate(Destinations.AUTO_CONSUMPTION)}) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Auto Deductions",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                     IconButton(onClick = {
                         navController.navigate(Destinations.SETTINGS)
@@ -279,6 +291,19 @@ fun StockMateNavigation() {
                         viewModel = viewModel,
                         onEditDishClick = { dishId ->
                             navController.navigate(Destinations.EDIT_DISH.replace("{dishId}", dishId.toString()))
+                        }
+                    )
+                }
+
+                composable(
+                    route = Destinations.AUTO_CONSUMPTION
+                ) {
+                    val viewModel: AutoConsumptionViewModel = hiltViewModel()
+
+                    AutoConsumptionScreen(
+                        viewModel = viewModel,
+                        onNavigateBack = {
+                            navController.popBackStack()
                         }
                     )
                 }

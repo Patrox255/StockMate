@@ -23,7 +23,7 @@ class DatabaseSeeder @Inject constructor(
     suspend fun seedDatabase() {
         withContext(Dispatchers.IO) {
             val reservedProductIds = (1..10).map { it.toLong() }.toList()
-            val reservedDishIds = listOf(1L, 2L)
+            val reservedDishIds = listOf(1L, 2L, 3L)
 
             dishDao.deleteDishIngredientsByProductIds(reservedProductIds)
             dishDao.deleteDishesByIds(reservedDishIds)
@@ -87,17 +87,29 @@ class DatabaseSeeder @Inject constructor(
             val idPastaBowlMultiplier = sampleMultipliersIds[sampleMultipliers.indexOfFirst {
                 it.productId == idPasta && it.name == "Bowl"
             }]
+            val idMilkGlassMultiplier = sampleMultipliersIds[sampleMultipliers.indexOfFirst {
+                it.productId == idMilk && it.name == "Glass"
+            }]
 
+            val dishEggsName = "Scrambled Eggs"
+            val dishPastaName = "Chicken Pasta"
+            val dishPancakesName = "Pancakes"
             val idDishEggs = dishDao.insertDish(Dish(
                 id = 1,
-                name = "Scrambled Eggs",
+                name = dishEggsName,
                 description = "Classic morning breakfast with buttery toast.",
                 createdAt = System.currentTimeMillis())
             )
             val idDishPasta = dishDao.insertDish(Dish(
                 id = 2,
-                name = "Chicken Pasta",
+                name = dishPastaName,
                 description = "Simple, high-protein delicious dinner.",
+                createdAt = System.currentTimeMillis())
+            )
+            val idDishPancakes = dishDao.insertDish(Dish(
+                id = 3,
+                name = dishPancakesName,
+                description = "Fluffy and delicious breakfast.",
                 createdAt = System.currentTimeMillis())
             )
 
@@ -109,7 +121,12 @@ class DatabaseSeeder @Inject constructor(
 
                 // Chicken Pasta: 1x Chicken (Dinner portion), 1x Pasta (Bowl)
                 DishIngredient(dishId = idDishPasta, productId = idChicken, amount = 1.0, multiplierId = idChickenDinnerMultiplier),
-                DishIngredient(dishId = idDishPasta, productId = idPasta, amount = 1.0, multiplierId = idPastaBowlMultiplier)
+                DishIngredient(dishId = idDishPasta, productId = idPasta, amount = 1.0, multiplierId = idPastaBowlMultiplier),
+
+                // Pancakes: 2x Eggs (Single), 1x Butter (Sandwich portion), 1x Milk (Glass)
+                DishIngredient(dishId = idDishPancakes, productId = idEggs, amount = 2.0, multiplierId = idEggsSingleMultiplier),
+                DishIngredient(dishId = idDishPancakes, productId = idButter, amount = 1.0, multiplierId = idButterMultiplierSandwich),
+                DishIngredient(dishId = idDishPancakes, productId = idMilk, amount = 1.0, multiplierId = idMilkGlassMultiplier)
             )
             sampleDishIngredients.forEach { dishDao.insertDishIngredient(it) }
 
@@ -122,7 +139,9 @@ class DatabaseSeeder @Inject constructor(
                 productId: Long,
                 daysAgo: Int,
                 amountChanged: Float,
-                changeReason: ChangeReason
+                changeReason: ChangeReason,
+                dishId: Long? = null,
+                dishName: String? = null
             ) {
                 curStock += amountChanged
                 sampleLogs.add(
@@ -131,7 +150,9 @@ class DatabaseSeeder @Inject constructor(
                         timestamp = now - daysAgo * dayMs,
                         amountChanged = amountChanged,
                         changeReason = changeReason,
-                        stockBefore = curStock - amountChanged
+                        stockBefore = curStock - amountChanged,
+                        relatedDishId = dishId,
+                        relatedDishName = dishName
                     )
                 )
             }
@@ -152,20 +173,76 @@ class DatabaseSeeder @Inject constructor(
                 )
             }
 
-            // Eggs scenario where 3 eggs were consumed every second day and nothing was consumed on the other days
-            curStock = 0.0f
+//           // Scrambled eggs scenario where this dish was prepared every other day for a week, consuming 3 eggs, 1 butter portion, and 2 slices of bread each time
             addStockLog(
                 productId = idEggs,
                 daysAgo = 8,
-                amountChanged = 12.0f,
+                amountChanged = 30.0f,
                 changeReason = ChangeReason.RESTOCKED
             )
-            for (daysAgo in 6 downTo 1 step 2) {
+            addStockLog(
+                productId = idButter,
+                daysAgo = 8,
+                amountChanged = 1000.0f,
+                changeReason = ChangeReason.RESTOCKED
+            )
+            addStockLog(
+                productId = idBread,
+                daysAgo = 8,
+                amountChanged = 10.0f,
+                changeReason = ChangeReason.RESTOCKED
+            )
+            for (daysAgo in 7 downTo 1 step 2) {
                 addStockLog(
                     productId = idEggs,
                     daysAgo = daysAgo,
                     amountChanged = -3.0f,
-                    changeReason = ChangeReason.CONSUMED
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishEggs,
+                    dishName = dishEggsName
+                )
+                addStockLog(
+                    productId = idButter,
+                    daysAgo = daysAgo,
+                    amountChanged = -10.0f,
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishEggs,
+                    dishName = dishEggsName
+                )
+                addStockLog(
+                    productId = idBread,
+                    daysAgo = daysAgo,
+                    amountChanged = -0.1f,
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishEggs,
+                    dishName = dishEggsName
+                )
+            }
+
+            listOf(3,1).forEach { daysAgo ->
+                addStockLog(
+                    productId = idEggs,
+                    daysAgo = daysAgo,
+                    amountChanged = -2.0f,
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishPancakes,
+                    dishName = dishPancakesName
+                )
+                addStockLog(
+                    productId = idButter,
+                    daysAgo = daysAgo,
+                    amountChanged = -10.0f,
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishPancakes,
+                    dishName = dishPancakesName
+                )
+                addStockLog(
+                    productId = idMilk,
+                    daysAgo = daysAgo,
+                    amountChanged = -0.25f,
+                    changeReason = ChangeReason.CONSUMED,
+                    dishId = idDishPancakes,
+                    dishName = dishPancakesName
                 )
             }
 

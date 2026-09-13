@@ -76,7 +76,13 @@ class ProductRepository @Inject constructor(
         }
     }
 
-    suspend fun changeStock(product: Product, amount: Float, reason: ChangeReason) {
+    suspend fun changeStock(
+        product: Product,
+        amount: Float,
+        reason: ChangeReason,
+        relatedDishId: Long? = null,
+        relatedDishName: String? = null
+    ) {
         val newStock = product.currentStock + amount
         val updatedProduct = product.copy(currentStock = newStock)
         productDao.updateProduct(updatedProduct)
@@ -86,7 +92,9 @@ class ProductRepository @Inject constructor(
             timestamp = System.currentTimeMillis(),
             amountChanged = amount,
             changeReason = reason,
-            stockBefore = product.currentStock
+            stockBefore = product.currentStock,
+            relatedDishId = relatedDishId,
+            relatedDishName = relatedDishName
         )
         stockLogDao.insertLog(log)
     }

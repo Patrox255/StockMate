@@ -69,4 +69,9 @@ class ProductDetailsViewModel @Inject constructor(
             productStockManager.StockAdjustmentDialogOnReasonSelected(reason)
         }
     }
+
+    fun startProductStockChange(product: Product, pendingDifference: Float) {
+        productStockManager.pendingDifferenceUpdate(pendingDifference)
+        productStockManager.productUpdate(product)
+    }
 }

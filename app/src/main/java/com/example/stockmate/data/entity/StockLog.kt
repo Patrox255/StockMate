@@ -24,7 +24,12 @@ data class StockLog(
     val timestamp: Long,
     val amountChanged: Float,
     val changeReason: ChangeReason,
-    val stockBefore: Float
+    val stockBefore: Float,
+    // In case a stock change occurred due to a dish being prepared, this field can be used to link the stock change to that dish.
+    // Also it will store the dish's name at the moment of the stock change, so that if the dish is
+    // deleted later, we still have a record of what dish caused the stock change.
+    val relatedDishId: Long? = null,
+    val relatedDishName: String? = null
 )
 
 enum class ChangeReason(val displayName: String) {
