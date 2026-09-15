@@ -68,3 +68,36 @@ StockMate is a modern Android application built to solve the everyday problem of
     <img width="419" height="845" alt="auto_deductions" src="https://github.com/user-attachments/assets/6e2f3471-12b9-426c-888f-51c43f2c0d11" />
   </div>
 </details>
+
+## Getting Started
+
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
+
+### Prerequisites
+* **Android Studio**
+* **Minimum SDK:** API 24 (Android 7.0).
+* **Pixabay API Key:** Required for the image search feature connected to Pixabay service. Add `PIXABAY_API_KEY="your_key_here"` to the `secrets.properties` file located in the main directory (utilize `secrets.defaults.properties` file to avoid errors).
+
+### Installation & Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Patrox255/StockMate.git](https://github.com/Patrox255/StockMate.git)
+2. **Open the project:**
+Launch Android Studio and select `File -> Open`, then navigate to the cloned StockMate directory.
+
+3. **Sync and Build:** 
+Let Gradle sync the project dependencies.
+
+4. **Run the app:** Select your emulator or physical device and click the Run button (Shift + F10).
+
+### Testing & Mock Data (Developer Options)
+
+To fully experience the app's capabilities (especially the ML predictions, auto-deductions, and Vico charts) without manually adding dozens of products, you can use the built-in database seeder:
+
+1. Launch the app and navigate to the **Settings** screen.
+2. Scroll down to the **Developer Options** section.
+3. Click **"Seed Database (Mock Data)"**.
+4. The app will instantly populate with realistic products (Milk, Eggs, Bread, etc.), custom dishes (e.g., Pancakes, Scrambled Eggs), and generate 7 days of consumption history for few products logs to power the analytical charts.
+
+*(Note: You can easily reset the app state anytime using the* ***"Clear Database"*** *button in the same menu).*
