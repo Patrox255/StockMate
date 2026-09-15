@@ -37,7 +37,7 @@ class SearchEnginePaginationManager<T>(
         _state.value = PaginatedState(
             items = emptyList(),
             isLoading = true,
-            error = null
+            error = null,
         )
         searchEngine.updateSearchQuery("")
         allItems = searchEngine.process(source, scope)
@@ -45,7 +45,7 @@ class SearchEnginePaginationManager<T>(
         sourceJob = scope.launch {
             try {
                 allItems.collect { result ->
-                    if (result.query == _state.value.searchQuery)
+                    if (result.query == _state.value.searchQuery && !result.isInitial)
                         updateStateForItems(result.items)
                 }
                 // Due to cancelling the job when the source is re-initialized,

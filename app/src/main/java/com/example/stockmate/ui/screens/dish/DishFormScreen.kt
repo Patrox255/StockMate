@@ -212,6 +212,7 @@ fun DishFormScreen(
                             },
                             onMultiplierSelectClick = {
                                 selectingMultiplierIngredientLocalId = ingredient.localId
+                                viewModel.onSelectMultiplierIngredient(ingredient.localId)
                             },
                             onRemoveClick = {
                                 viewModel.removeIngredient(ingredient)

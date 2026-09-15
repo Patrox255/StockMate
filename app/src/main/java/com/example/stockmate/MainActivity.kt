@@ -17,6 +17,7 @@ import androidx.navigation.navArgument
 import com.example.compose.AppTheme
 import com.example.stockmate.data.repository.ProductRepository
 import com.example.stockmate.data.seeder.DatabaseSeeder
+import com.example.stockmate.data.seeder.SeederAction
 import com.example.stockmate.ui.screens.inventory.InventoryScreen
 import com.example.stockmate.ui.screens.product.ProductFormScreen
 import com.example.stockmate.ui.screens.product.ProductDetailsScreen
@@ -36,7 +37,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         lifecycleScope.launch {
-            databaseSeeder.seedDatabase()
+            databaseSeeder.seedDatabase(
+                // DEVELOPMENT ONLY
+                seederAction = SeederAction.SEED
+            )
         }
 
         setContent {

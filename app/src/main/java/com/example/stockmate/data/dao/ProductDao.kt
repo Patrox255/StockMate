@@ -57,4 +57,7 @@ interface ProductDao {
 
     @Query("SELECT imageUrl FROM products WHERE imageUrl IS NOT NULL")
     suspend fun getAllUsedImagePaths(): List<String>
+
+    @Query("UPDATE products SET currentStock = :newStock WHERE id = :productId")
+    suspend fun updateProductStock(productId: Long, newStock: Float)
 }

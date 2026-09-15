@@ -1,5 +1,6 @@
 package com.example.stockmate.data.seeder
 
+import androidx.compose.runtime.currentComposer
 import com.example.stockmate.data.dao.DishDao
 import com.example.stockmate.data.dao.ProductDao
 import com.example.stockmate.data.dao.ProductMultiplierDao
@@ -14,34 +15,50 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+enum class SeederAction {
+    SEED, CLEAR, NONE
+}
+
 class DatabaseSeeder @Inject constructor(
     val productMultiplierDao: ProductMultiplierDao,
     val stockLogDao: StockLogDao,
     val productDao: ProductDao,
     val dishDao: DishDao
 ) {
-    suspend fun seedDatabase() {
+    suspend fun seedDatabase(seederAction: SeederAction = SeederAction.NONE) {
+        if (seederAction == SeederAction.NONE) return
+
         withContext(Dispatchers.IO) {
-            val reservedProductIds = (1..10).map { it.toLong() }.toList()
-            val reservedDishIds = listOf(1L, 2L, 3L)
+            dishDao.deleteAllDishIngredients()
+            dishDao.deleteAllDishes()
+            productMultiplierDao.deleteAllMultipliers()
+            stockLogDao.deleteAllLogs()
+            productDao.deleteAllProducts()
+            if (seederAction == SeederAction.CLEAR) return@withContext
 
-            dishDao.deleteDishIngredientsByProductIds(reservedProductIds)
-            dishDao.deleteDishesByIds(reservedDishIds)
-
-            productMultiplierDao.deleteMultipliersByProductIds(reservedProductIds)
-            stockLogDao.deleteLogsForProductIds(reservedProductIds)
-            productDao.deleteProductsByIds(reservedProductIds)
-
-            val idMilk = productDao.insertProduct(Product(id=1, name = "Milk", unit = "L", currentStock = 2.0f, targetStock = 5.0f))
-            val idRice = productDao.insertProduct(Product(id=2, name = "Rice", unit = "kg", currentStock = 1.5f, targetStock = 4.0f))
-            val idEggs = productDao.insertProduct(Product(id=3, name = "Eggs", unit = "pcs", currentStock = 8.0f, targetStock = 20.0f))
-            val idBread = productDao.insertProduct(Product(id=4, name = "Bread", unit = "loaf", currentStock = 1.0f, targetStock = 2.0f))
-            val idButter = productDao.insertProduct(Product(id=5, name = "Butter", unit = "g", currentStock = 150.0f, targetStock = 600.0f))
-            val idChicken = productDao.insertProduct(Product(id=6, name = "Chicken Breast", unit = "kg", currentStock = 0.8f, targetStock = 2.0f))
-            val idPasta = productDao.insertProduct(Product(id=7, name = "Pasta", unit = "g", currentStock = 400.0f, targetStock = 1500.0f))
-            val idCoffee = productDao.insertProduct(Product(id=8, name = "Coffee", unit = "g", currentStock = 250.0f, targetStock = 1000.0f))
-            val idPotatoes = productDao.insertProduct(Product(id=9, name = "Potatoes", unit = "kg", currentStock = 3.5f, targetStock = 10.0f))
-            val idApples = productDao.insertProduct(Product(id=10, name = "Apples", unit = "kg", currentStock = 1.2f, targetStock = 3.0f))
+            val milk = Product(id=1, name = "Milk", unit = "L", currentStock = 2.0f, targetStock = 5.0f)
+            val rice = Product(id=2, name = "Rice", unit = "kg", currentStock = 1.5f, targetStock = 4.0f)
+            val eggs = Product(id=3, name = "Eggs", unit = "pcs", currentStock = 8.0f, targetStock = 20.0f)
+            val bread = Product(id=4, name = "Bread", unit = "loaf", currentStock = 1.0f, targetStock = 2.0f)
+            val butter = Product(id=5, name = "Butter", unit = "g", currentStock = 150f, targetStock = 600.0f)
+            val chicken = Product(id=6, name = "Chicken Breast", unit = "kg", currentStock = 0.8f, targetStock = 2.0f)
+            val pasta = Product(id=7, name = "Pasta", unit = "g", currentStock = 400.0f, targetStock = 1500.0f)
+            val coffee = Product(id=8, name = "Coffee", unit = "g", currentStock = 250.0f, targetStock = 1000.0f)
+            val potatoes = Product(id=9, name = "Potatoes", unit = "kg", currentStock = 3.5f, targetStock = 10.0f)
+            val apples = Product(id=10, name = "Apples", unit = "kg", currentStock = 1.2f, targetStock = 3.0f)
+            val idMilk = milk.id
+            val idRice = rice.id
+            val idEggs = eggs.id
+            val idBread = bread.id
+            val idButter = butter.id
+            val idChicken = chicken.id
+            val idPasta = pasta.id
+            val idCoffee = coffee.id
+            val idPotatoes = potatoes.id
+            val idApples = apples.id
+            listOf(milk, rice, eggs, bread, butter, chicken, pasta, coffee, potatoes, apples).forEach {
+                productDao.insertProduct(it)
+            }
 
             val sampleMultipliers = listOf<ProductMultiplier>(
                 ProductMultiplier(productId = idMilk, name = "Glass", value = 0.25f, sortOrder = 1),
@@ -134,7 +151,18 @@ class DatabaseSeeder @Inject constructor(
             val now = System.currentTimeMillis()
             val dayMs = 24 * 60 * 60 * 1000L
 
-            var curStock = 0.0f
+            val curStockMap = mutableMapOf<Long, Float>(
+                idMilk to milk.currentStock,
+                idRice to rice.currentStock,
+                idEggs to eggs.currentStock,
+                idBread to bread.currentStock,
+                idButter to butter.currentStock,
+                idChicken to chicken.currentStock,
+                idPasta to pasta.currentStock,
+                idCoffee to coffee.currentStock,
+                idPotatoes to potatoes.currentStock,
+                idApples to apples.currentStock
+            )
             fun addStockLog(
                 productId: Long,
                 daysAgo: Int,
@@ -143,14 +171,15 @@ class DatabaseSeeder @Inject constructor(
                 dishId: Long? = null,
                 dishName: String? = null
             ) {
-                curStock += amountChanged
+                val curStock = curStockMap.getOrDefault(productId, 0.0f)
+                curStockMap[productId] = curStockMap.getOrDefault(productId, 0.0f) + amountChanged
                 sampleLogs.add(
                     StockLog(
                         productId = productId,
                         timestamp = now - daysAgo * dayMs,
                         amountChanged = amountChanged,
                         changeReason = changeReason,
-                        stockBefore = curStock - amountChanged,
+                        stockBefore = curStock,
                         relatedDishId = dishId,
                         relatedDishName = dishName
                     )
@@ -285,6 +314,9 @@ class DatabaseSeeder @Inject constructor(
             )
 
             sampleLogs.forEach { stockLogDao.insertLog(it) }
+            for ((productId, stock) in curStockMap) {
+                productDao.updateProductStock(productId, stock)
+            }
         }
     }
 }

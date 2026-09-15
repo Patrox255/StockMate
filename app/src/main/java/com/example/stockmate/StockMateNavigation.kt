@@ -1,8 +1,12 @@
 package com.example.stockmate
 
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
@@ -19,6 +23,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavType
@@ -93,12 +99,17 @@ fun StockMateNavigation() {
         dynamicNavigationAction = when (currentRoute) {
             Destinations.INVENTORY -> {
                 {
-                    Icon(
-                        imageVector = Icons.Default.Inventory2,
-                        contentDescription = "Logo",
-                        modifier = Modifier.padding(start = 16.dp, end = 8.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    IconButton(
+                        onClick = {}
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.stockmate_logo),
+                            contentDescription = "StockMate Logo",
+                            modifier = Modifier
+                                .fillMaxSize(.85f),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
             }
             else -> null

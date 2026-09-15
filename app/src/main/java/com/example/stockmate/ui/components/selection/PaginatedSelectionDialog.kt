@@ -57,6 +57,10 @@ fun <T> PaginatedSelectionDialog(
                     modifier = Modifier.height(8.dp)
                 )
 
+                Text(
+                    text = "Debug: ${state.items.size} items, page ${state.currentPage + 1} of ${state.visiblePages.size}, state status: ${if (state.isLoading) "Loading" else if (state.error != null) "Error: ${state.error}" else "Loaded"}",
+                )
+
                 when {
                     state.isLoading -> {
                         LoadingIndicator()

@@ -323,6 +323,13 @@ class DishFormViewModel @Inject constructor(
             productRepository.getMultipliersByProductIdFlow(product.id)
         )
     }
+    fun onSelectMultiplierIngredient(localId: String) {
+        val ingredient = _dish.value.ingredients.find { it.localId == localId } ?: return
+        val product = ingredient.product ?: return
+        multipliersSearchEnginePaginationManager.initialize(
+            productRepository.getMultipliersByProductIdFlow(product.id)
+        )
+    }
     fun onImageChanged(newPath: String?) {
         formImageTracker.onImageChanged(newPath)
         _dish.value = _dish.value.copy(imagePath = newPath)

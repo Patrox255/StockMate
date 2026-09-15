@@ -32,6 +32,9 @@ interface DishDao {
     @Update
     suspend fun updateDishIngredient(ingredient: DishIngredient)
 
+    @Query("DELETE FROM dishes")
+    suspend fun deleteAllDishes()
+
     @Insert(onConflict = REPLACE)
     suspend fun insertDish(dish: Dish): Long
 
@@ -49,4 +52,6 @@ interface DishDao {
 
     @Query("DELETE FROM dishes WHERE id IN (:dishIds)")
     suspend fun deleteDishesByIds(dishIds: List<Long>)
+    @Query("DELETE FROM dish_ingredients")
+    suspend fun deleteAllDishIngredients()
 }

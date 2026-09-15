@@ -117,7 +117,12 @@ class AutoConsumptionViewModel @Inject constructor(
                             selectedMode = initialMode,
                             yesterdayDishes = dishBreakdown,
                             amountInput = initialAmount.toString(),
-                            todayAmount = todayVal
+                            todayAmount = todayVal,
+                            selectedDishes = if (initialMode == SuggestionMode.YESTERDAY) {
+                                dishBreakdown.map { it.dishName }.toSet()
+                            } else {
+                                emptySet()
+                            }
                         )
                     )
                 }

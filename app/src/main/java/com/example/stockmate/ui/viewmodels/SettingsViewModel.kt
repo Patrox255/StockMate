@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.stockmate.data.dtos.AppSettings
 import com.example.stockmate.data.prediction.ConsumptionPredictionEngine
 import com.example.stockmate.data.prediction.SettingsRepository
+import com.example.stockmate.data.seeder.DatabaseSeeder
+import com.example.stockmate.data.seeder.SeederAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val predictionEngine: ConsumptionPredictionEngine
+    private val predictionEngine: ConsumptionPredictionEngine,
+    private val databaseSeeder: DatabaseSeeder
 ): ViewModel() {
     val settings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(
@@ -35,6 +38,21 @@ class SettingsViewModel @Inject constructor(
                 .onFailure { error ->
                     _saveError.value = "Failed to save settings. Please try again."
                 }
+        }
+    }
+
+    fun clearDatabase() {
+        viewModelScope.launch {
+            databaseSeeder.seedDatabase(
+                seederAction = SeederAction.CLEAR
+            )
+        }
+    }
+    fun seedDatabase() {
+        viewModelScope.launch {
+            databaseSeeder.seedDatabase(
+                seederAction = SeederAction.SEED
+            )
         }
     }
 }

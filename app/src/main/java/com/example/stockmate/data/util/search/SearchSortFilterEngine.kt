@@ -73,7 +73,8 @@ data class MultiSelectFilterGroup<T>(
 
 data class SearchResult<T>(
     val items: List<T>,
-    val query: String
+    val query: String,
+    val isInitial: Boolean = false
 )
 
 @OptIn(FlowPreview::class)
@@ -126,12 +127,13 @@ class SearchSortFilterEngine<T>(
 
             SearchResult(
                 items = result,
-                query = query
+                query = query,
+                isInitial = false
             )
         }.stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis),
-            initialValue = SearchResult(items = emptyList(), query = "")
+            initialValue = SearchResult(items = emptyList(), query = "", isInitial = true)
         )
     }
 

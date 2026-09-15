@@ -73,18 +73,24 @@ class DishDetailsViewModel @Inject constructor(
             val dish = data.dish
             val ingredients = data.ingredients
 
-            ingredients.forEach { item ->
-                val requiredQuantity = (item.ingredient.amount * item.multiplier.value).toFloat()
-                productRepository.changeStock(
-                    product = item.product,
-                    amount = -requiredQuantity,
-                    reason = ChangeReason.CONSUMED,
-                    relatedDishId = dishId,
-                    relatedDishName = dish.name
-                )
+            _showCookDialog.value = false
+            try {
+                ingredients.forEach { item ->
+                    val requiredQuantity =
+                        (item.ingredient.amount * item.multiplier.value).toFloat()
+                    productRepository.changeStock(
+                        product = item.product,
+                        amount = -requiredQuantity,
+                        reason = ChangeReason.CONSUMED,
+                        relatedDishId = dishId,
+                        relatedDishName = dish.name
+                    )
+                }
+            } catch (e: Exception) {
+                _uiEvent.emit(DishDetailsUiEvent.ShowToast("Error while cooking ${dish.name}!"))
+                return@launch
             }
 
-            _showCookDialog.value = false
             _uiEvent.emit(DishDetailsUiEvent.ShowToast("Dish cooked successfully!"))
         }
     }

@@ -27,6 +27,8 @@ interface StockLogDao {
 
     @Insert
     suspend fun insertLog(log: StockLog)
+    @Query("DELETE FROM stock_logs")
+    suspend fun deleteAllLogs()
 
     @Query("SELECT * FROM stock_logs WHERE changeReason = 'CONSUMED' ORDER BY timestamp DESC")
     fun getAllConsumptionsFlow(): Flow<List<StockLog>>

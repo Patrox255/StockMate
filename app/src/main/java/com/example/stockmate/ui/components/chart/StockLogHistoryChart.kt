@@ -14,6 +14,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.example.stockmate.data.entity.ChangeReason
 import com.example.stockmate.data.util.chart.StepLineInterpolator
+import com.example.stockmate.data.util.formatting.toCleanString
 import com.example.stockmate.ui.components.shapes.DiamondShape
 import com.example.stockmate.ui.viewmodels.chart.ChartSeriesAdditionalRenderInfo
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -102,9 +103,9 @@ fun StockLogHistoryChart(
                     Log.d("StockLogHistoryChart", "Marker for product: $productName, stockValue: $stockValue, time: ${point.entry.x}, curStockPointTime: ${relatedAdditionalInfo.curStockPointTime}, diff: ${relatedAdditionalInfo.curStockPointTime?.let { point.entry.x - it }}")
 
                     if (isPrediction) {
-                        "${productName}: ${stockValue} (Predicted Stock)"
+                        "${productName}: ${stockValue.toCleanString()} (Predicted Stock)"
                     } else {
-                        "${productName}: ${stockValue} (${
+                        "${productName}: ${stockValue.toCleanString()} (${
                             if (reason?.displayName != null) {
                                 reason.displayName
                             } else if (relatedAdditionalInfo.curStockPointTime != null && xValue == relatedAdditionalInfo.curStockPointTime.toDouble()) {
